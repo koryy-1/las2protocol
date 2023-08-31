@@ -2,28 +2,32 @@ from docx import Document
 from docx.shared import Inches
 
 
-def make_docx():
+def make_docx(output_filename, params, MEM_FILES, picture_size):
+    (MF_RSD, MF_RLD, MF_RLD_ON_RSD, MF_MT) = MEM_FILES
+
+    (serial_number, date, instrument_name) = params
+
     document = Document()
 
-    document.add_heading('Протокол температурных испытаний прибора', 2)
+    document.add_heading('Протокол температурных испытаний прибора', 1)
 
 
-    document.add_paragraph('Прибор', style='List Number')
-    document.add_paragraph('Канал', style='List Number')
-    document.add_paragraph('Дата испытаний', style='List Number')
-    document.add_paragraph('Пороги', style='List Number')
+    document.add_paragraph(f'Прибор                  {serial_number}', style='List Number')
+    document.add_paragraph(f'Канал                 {instrument_name}', style='List Number')
+    document.add_paragraph(f'Дата испытаний          {date}', style='List Number')
+    document.add_paragraph('Пороги                    (ADCS   ADCL?)', style='List Number')
 
     document.add_paragraph('RSD', style='List Number')
-    document.add_picture('RSD.png', width=Inches(7))
+    document.add_picture(MF_RSD, width=Inches(picture_size))
 
     document.add_paragraph('RLD', style='List Number')
-    document.add_picture('RLD.png', width=Inches(7))
+    document.add_picture(MF_RLD, width=Inches(picture_size))
 
     document.add_paragraph('RLD/RSD', style='List Number')
-    document.add_picture('RLD_on_RSD.png', width=Inches(7))
+    document.add_picture(MF_RLD_ON_RSD, width=Inches(picture_size))
 
     document.add_paragraph('TEMPER', style='List Number')
-    document.add_picture('TEMPER.png', width=Inches(7))
+    document.add_picture(MF_MT, width=Inches(picture_size))
 
     document.add_paragraph('Результаты', style='List Number')
 
@@ -44,12 +48,14 @@ def make_docx():
         row_cells[1].text = id
         row_cells[2].text = desc
 
-    table.style = 'LightShading-Accent1'
+    # table.style = ''
 
     document.add_paragraph('Выводы', style='List Number')
     document.add_paragraph(
         'Температурный уход сигналов RSD,  RLD  и  RLD/RSD  в диапазоне температур от 64 до 130 градусов не превышает 5%.'
     )
+
+    document.add_paragraph()
 
     document.add_paragraph(
         'Начальник КО-1                               А.Н. Петров'
@@ -59,7 +65,7 @@ def make_docx():
     )
 
     try:
-        document.save('serial_number_date.docx')
+        document.save(f'{output_filename}.docx')
         print("docx successfully saved")
     except:
         print("ERROR: failed to save, please close document <NAME>")

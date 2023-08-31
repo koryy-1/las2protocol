@@ -1,35 +1,53 @@
 import os
 import lasio
 import numpy as np
+import pandas as pd
+from config import *
 
 from docx_creator import make_docx
 
 from plot_creator import create_plot
 
+
+def moving_average(data, window_size):
+    return pd.Series(data).rolling(window=window_size).mean().iloc[window_size-1:].values
+
 if __name__ == "__main__":
-    # fulPath = r"C:/Users/Андрей/Desktop/Ilya/19399001 2023-07-27 09-46-50 ГГКП.rt.las"
-    # print(fulPath)
     cwd = os.getcwd().replace("\\", "/")
 
-    filename = "19399001 2023-07-27 09-46-50 ГГКП.rt.las"
-    las = lasio.read(f"{cwd}/examples/{filename}")
-    Keys=las.keys()
-    print(Keys)
-    print(os.getcwd())
+    print(f'reading {FILENAME}')
+    las = lasio.read(f"{cwd}/examples/{FILENAME}", encoding="cp1251")
+
+    serial_number = las.well["SNUM"].value
+    date = las.well["DATE"].value
+    instrument_name = las.well["NAME"].value
+
+    params = (serial_number, date, instrument_name)
+    # print(params)
 
 
-    # smoothing
-    # smoothed_RSD = [for]
-    create_plot(las["TIME"], las["RSD"], "RSD_1", "RSD")
+    print('calculating moving average for RSD and RLD...')
+    smoothed_RSD = moving_average(las["RSD"], WINDOW_SIZE)
+    smoothed_RLD = moving_average(las["RLD"], WINDOW_SIZE)
 
-    create_plot(las["TIME"], las["RLD"], "RLD_1", "RLD")
+    print('creating plots...')
+    MF_RSD = create_plot(las["TIME"], smoothed_RSD, "RSD_1")
 
-    RSD_y = las["RSD"]
-    RLD_on_RSD = [el/RSD_y[8] for el in RSD_y]
-    create_plot(las["TIME"], np.array(RLD_on_RSD), "RLD/RSD", "RLD_on_RSD")
+    MF_RLD = create_plot(las["TIME"], smoothed_RLD, "RLD_1")
 
-    create_plot(las["TIME"], las["MT"], "TEMPER", "TEMPER")
+    RLD_on_RSD = smoothed_RLD / smoothed_RSD
+    MF_RLD_ON_RSD = create_plot(las["TIME"], RLD_on_RSD, "RLD/RSD")
 
-    make_docx()
+    MF_MT = create_plot(las["TIME"], las["MT"], "TEMPER")
 
+    MEM_FILES = (MF_RSD, MF_RLD, MF_RLD_ON_RSD, MF_MT)
+
+
+    output_filename = f"{serial_number}_{date}_{instrument_name}"
+    print(f'creating {output_filename}.docx...')
+    make_docx(output_filename, params, MEM_FILES, picture_size=7)
+    
     # las.to_excel('output.xlsx')
+
+    print('Done.')
+    os.system('pause')

@@ -1,23 +1,29 @@
+from io import BytesIO
 import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
 import pandas as pd
 
-def create_plot(x, y, plot_title: str, filename: str):
+def create_plot(x, y, plot_title: str) -> BytesIO:
     # my_dict = dict(x, y)
 
     # data = pd.DataFrame (my_dict)
     # plt.style.use("Solarize_Light2")
 
-    fig, ax = plt.subplots(figsize=(10, 4))
+    fig, ax = plt.subplots(figsize=(12, 4))
     
     ax.plot(y, label=plot_title)
-    ax.set_ylim(1, y.max() * 1.5) 
+    ax.set_ylim(0, y.max() * 1.5)
+    ax.set_xlim(-200, len(x) * 1.2)
 
-    ax.legend(y, loc='right')
+    ax.legend([plot_title], loc='right')
 
     plt.grid(True)
 
     plt.title(plot_title)
-    fig.savefig(f"{filename}.png", dpi=200,)
+
+    memfile = BytesIO()
+    fig.savefig(memfile)
     # plt.show()
+
+    return memfile

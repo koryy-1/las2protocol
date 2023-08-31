@@ -3,13 +3,21 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import pandas as pd
 
-def create(my_dict: dict, plot_title: str, filename: str):
-    data = pd.DataFrame (my_dict)
-    fig, ax = plt.subplots()
-    ax = sns.barplot(x='x', y='y', data=data, )
-    ax.set_title(plot_title)
+def create_plot(x, y, plot_title: str, filename: str):
+    # my_dict = dict(x, y)
 
-    # plt.legend(loc='upper right')
+    # data = pd.DataFrame (my_dict)
+    # plt.style.use("Solarize_Light2")
 
-    fig.savefig(f"{filename}.png", dpi=200, orientation='landscape')
+    fig, ax = plt.subplots(figsize=(10, 4))
+    
+    ax.plot(y, label=plot_title)
+    ax.set_ylim(1, y.max() * 1.5) 
+
+    ax.legend(y, loc='right')
+
+    plt.grid(True)
+
+    plt.title(plot_title)
+    fig.savefig(f"{filename}.png", dpi=200,)
     # plt.show()

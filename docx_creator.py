@@ -14,16 +14,16 @@ def make_docx():
     document.add_paragraph('Пороги', style='List Number')
 
     document.add_paragraph('RSD', style='List Number')
-    document.add_picture('RSD.png', width=Inches(5))
+    document.add_picture('RSD.png', width=Inches(7))
 
     document.add_paragraph('RLD', style='List Number')
-    document.add_picture('RLD.png', width=Inches(5))
+    document.add_picture('RLD.png', width=Inches(7))
 
     document.add_paragraph('RLD/RSD', style='List Number')
-    document.add_picture('RLD_on_RSD.png', width=Inches(5))
+    document.add_picture('RLD_on_RSD.png', width=Inches(7))
 
     document.add_paragraph('TEMPER', style='List Number')
-    document.add_picture('TEMPER.png', width=Inches(5))
+    document.add_picture('TEMPER.png', width=Inches(7))
 
     document.add_paragraph('Результаты', style='List Number')
 
@@ -58,6 +58,8 @@ def make_docx():
         'Составил:                                    А.Б. Овчаренко'
     )
 
-    document.save('serial_number_date.docx')
-
-    print("docx successfully saved")
+    try:
+        document.save('serial_number_date.docx')
+        print("docx successfully saved")
+    except:
+        print("ERROR: failed to save, please close document <NAME>")

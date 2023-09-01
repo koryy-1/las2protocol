@@ -2,20 +2,30 @@ from docx import Document
 from docx.shared import Inches
 
 
-def make_docx(output_filename, params, MEM_FILES, picture_size):
+def make_docx(output_filename, params, MEM_FILES, picture_size) -> bool:
     (MF_RSD, MF_RLD, MF_RLD_ON_RSD, MF_MT) = MEM_FILES
 
-    (serial_number, date, instrument_name) = params
+    (
+        serial_number, 
+        date, 
+        instrument_name, 
+        records, 
+        conclusion, 
+        T_min, 
+        T_max,
+        ADCS,
+        ADCL,
+    ) = params
 
     document = Document()
 
     document.add_heading('Протокол температурных испытаний прибора', 1)
 
 
-    document.add_paragraph(f'Прибор                  {serial_number}', style='List Number')
-    document.add_paragraph(f'Канал                 {instrument_name}', style='List Number')
-    document.add_paragraph(f'Дата испытаний          {date}', style='List Number')
-    document.add_paragraph('Пороги                    (ADCS   ADCL?)', style='List Number')
+    document.add_paragraph(f'Прибор:                  {serial_number}', style='List Number')
+    document.add_paragraph(f'Канал:                 {instrument_name}', style='List Number')
+    document.add_paragraph(f'Дата испытаний:          {date}', style='List Number')
+    document.add_paragraph(f'Пороги: RSD - {ADCS} мВ, RLD - {ADCL} мВ. ', style='List Number')
 
     document.add_paragraph('RSD', style='List Number')
     document.add_picture(MF_RSD, width=Inches(picture_size))
@@ -31,28 +41,28 @@ def make_docx(output_filename, params, MEM_FILES, picture_size):
 
     document.add_paragraph('Результаты', style='List Number')
 
-    records = (
-        (3, '101', 'Spam'),
-        (7, '422', 'Eggs'),
-        (4, '631', 'Spam, spam, eggs, and spam')
-    )
 
-    table = document.add_table(rows=1, cols=3)
+    table = document.add_table(rows=1, cols=5)
     hdr_cells = table.rows[0].cells
-    hdr_cells[0].text = 'Qty'
-    hdr_cells[1].text = 'Id'
-    hdr_cells[2].text = 'Desc'
-    for qty, id, desc in records:
+    hdr_cells[0].text = 'п/п'
+    hdr_cells[1].text = 'Формула'
+    hdr_cells[2].text = 'RSD'
+    hdr_cells[3].text = 'RLD'
+    hdr_cells[4].text = 'RLD/RSD'
+    # print(records)
+    for num, formula, RSD, RLD, RLD_ON_RSD in records:
         row_cells = table.add_row().cells
-        row_cells[0].text = str(qty)
-        row_cells[1].text = id
-        row_cells[2].text = desc
+        row_cells[0].text = str(num)
+        row_cells[1].text = formula
+        row_cells[2].text = str(RSD)
+        row_cells[3].text = str(RLD)
+        row_cells[4].text = str(RLD_ON_RSD)
 
-    # table.style = ''
-
+    table.style = 'Table Grid'
+    
     document.add_paragraph('Выводы', style='List Number')
     document.add_paragraph(
-        'Температурный уход сигналов RSD,  RLD  и  RLD/RSD  в диапазоне температур от 64 до 130 градусов не превышает 5%.'
+        f'Температурный уход сигналов RSD,  RLD  и  RLD/RSD  в диапазоне температур от {T_min} до {T_max} градусов {conclusion} 5%.'
     )
 
     document.add_paragraph()
@@ -66,6 +76,6 @@ def make_docx(output_filename, params, MEM_FILES, picture_size):
 
     try:
         document.save(f'{output_filename}.docx')
-        print("docx successfully saved")
+        return True
     except:
-        print("ERROR: failed to save, please close document <NAME>")
+        return False

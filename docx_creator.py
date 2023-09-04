@@ -1,5 +1,7 @@
 from docx import Document
 from docx.shared import Inches
+from docx.shared import Pt
+from docx.enum.text import WD_ALIGN_PARAGRAPH
 
 
 def make_docx(output_filename, params, MEM_FILES, picture_size) -> bool:
@@ -19,12 +21,23 @@ def make_docx(output_filename, params, MEM_FILES, picture_size) -> bool:
 
     document = Document()
 
-    document.add_heading('Протокол температурных испытаний прибора', 1)
+    # styles
+    style = document.styles['Normal']
+    style.font.size = Pt(12)
+
+    p_header = document.add_paragraph()
+    p_header.add_run('Протокол').bold = True
+    p_header_fmt = p_header.paragraph_format
+    p_header_fmt.alignment = WD_ALIGN_PARAGRAPH.CENTER
+
+    p_header2 = document.add_paragraph('температурных испытаний прибора')
+    p_header2_fmt = p_header2.paragraph_format
+    p_header2_fmt.alignment = WD_ALIGN_PARAGRAPH.CENTER
 
 
-    document.add_paragraph(f'Прибор:                  {serial_number}', style='List Number')
-    document.add_paragraph(f'Канал:                 {instrument_name}', style='List Number')
-    document.add_paragraph(f'Дата испытаний:          {date}', style='List Number')
+    document.add_paragraph(f'Прибор:                               №: {serial_number}', style='List Number')
+    document.add_paragraph(f'Канал:                                   {instrument_name}', style='List Number')
+    document.add_paragraph(f'Дата испытаний:                 {date}', style='List Number')
     document.add_paragraph(f'Пороги: RSD - {ADCS} мВ, RLD - {ADCL} мВ. ', style='List Number')
 
     document.add_paragraph('RSD', style='List Number')
@@ -60,7 +73,10 @@ def make_docx(output_filename, params, MEM_FILES, picture_size) -> bool:
 
     table.style = 'Table Grid'
     
-    document.add_paragraph('Выводы', style='List Number')
+    document.add_paragraph()
+
+    conc_p = document.add_paragraph(style='List Number')
+    conc_p.add_run('Выводы').bold = True
     document.add_paragraph(
         f'Температурный уход сигналов RSD,  RLD  и  RLD/RSD  в диапазоне температур от {T_min} до {T_max} градусов {conclusion} 5%.'
     )
@@ -68,10 +84,10 @@ def make_docx(output_filename, params, MEM_FILES, picture_size) -> bool:
     document.add_paragraph()
 
     document.add_paragraph(
-        'Начальник КО-1                               А.Н. Петров'
+        'Начальник КО-1                                                                    А.Н. Петров'
     )
     document.add_paragraph(
-        'Составил:                                    А.Б. Овчаренко'
+        'Составил:                                                                               А.Б. Овчаренко'
     )
 
     try:

@@ -1,9 +1,10 @@
 import os
+import sys
+import glob
 import lasio
 import datetime
 import numpy as np
 import pandas as pd
-from config import *
 from calculations import get_calculation_table, get_conclusion
 
 from docx_creator import make_docx
@@ -18,8 +19,15 @@ def moving_average(data, window_size):
 if __name__ == "__main__":
     cwd = os.getcwd().replace("\\", "/")
 
+    FILENAME = glob.glob('*.las')[0]
+
     print(f'reading {FILENAME}')
-    las = lasio.read(f"{cwd}/examples/{FILENAME}", encoding="cp1251")
+    try:
+        las = lasio.read(f"{cwd}/{FILENAME}", encoding="cp1251")
+    except:
+        print(f'ERROR: file {FILENAME} not found')
+        sys.exit() 
+        
 
     serial_number = las.well["SNUM"].value
     date = las.well["DATE"].value
@@ -27,6 +35,7 @@ if __name__ == "__main__":
 
     
     print('calculating moving average for RSD and RLD...')
+    WINDOW_SIZE = 120
     smoothed_RSD = moving_average(las["RSD"], WINDOW_SIZE)
     smoothed_RLD = moving_average(las["RLD"], WINDOW_SIZE)
 
@@ -63,7 +72,7 @@ if __name__ == "__main__":
     current_date = datetime.datetime.now().strftime('%d%m%y')
     output_filename = f"{serial_number}_{instrument_name}_{current_date}"
     print(f'creating {output_filename}.docx...')
-    success = make_docx(output_filename, params, MEM_FILES, picture_size=7)
+    success = make_docx(output_filename, params, MEM_FILES, picture_size=6.5)
 
     if (success):
         print('docx successfully saved')
@@ -72,6 +81,7 @@ if __name__ == "__main__":
         print()
         print(f'ERROR: failed to save, please close document {output_filename}.docx')
     
+
     # las.to_excel('output.xlsx')
 
     os.system('pause')

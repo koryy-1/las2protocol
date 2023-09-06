@@ -54,7 +54,7 @@ if __name__ == "__main__":
 
     MEM_FILES = (MF_RSD, MF_RLD, MF_RLD_ON_RSD, MF_MT)
 
-    table = get_calculation_table(WINDOW_SIZE, las["MT"][:np.max(las["MT"])], smoothed_RSD, smoothed_RLD, RLD_on_RSD)
+    table = get_calculation_table(WINDOW_SIZE, las["MT"][:np.argmax(las["MT"])], smoothed_RSD, smoothed_RLD, RLD_on_RSD)
 
     conclusion = get_conclusion(table)
 

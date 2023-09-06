@@ -5,7 +5,7 @@ import lasio
 import datetime
 import numpy as np
 import pandas as pd
-from calculations import get_calculation_table, get_conclusion
+from calculations import *
 
 from docx_creator import make_docx
 
@@ -19,7 +19,7 @@ def moving_average(data, window_size):
 if __name__ == "__main__":
     cwd = os.getcwd().replace("\\", "/")
 
-    FILENAME = glob.glob('*.las')[0]
+    FILENAME = glob.glob('*.las')[1]
 
     print(f'reading {FILENAME}')
     try:
@@ -34,8 +34,11 @@ if __name__ == "__main__":
     instrument_name = las.well["NAME"].value
 
     
+    DURATION_1_COUNT = 4000
+    WINDOW_SIZE = int(4 * 60 * 1000 / DURATION_1_COUNT)
+    print('WINDOW_SIZE', WINDOW_SIZE)
+    
     print('calculating moving average for RSD and RLD...')
-    WINDOW_SIZE = 120
     smoothed_RSD = moving_average(las["RSD"], WINDOW_SIZE)
     smoothed_RLD = moving_average(las["RLD"], WINDOW_SIZE)
 
@@ -51,7 +54,7 @@ if __name__ == "__main__":
 
     MEM_FILES = (MF_RSD, MF_RLD, MF_RLD_ON_RSD, MF_MT)
 
-    table = get_calculation_table(las["MT"], smoothed_RSD, smoothed_RLD, RLD_on_RSD)
+    table = get_calculation_table(WINDOW_SIZE, las["MT"][:np.max(las["MT"])], smoothed_RSD, smoothed_RLD, RLD_on_RSD)
 
     conclusion = get_conclusion(table)
 
@@ -70,7 +73,7 @@ if __name__ == "__main__":
 
  
     current_date = datetime.datetime.now().strftime('%d%m%y')
-    output_filename = f"{serial_number}_{instrument_name}_{current_date}"
+    output_filename = f"{serial_number}_{instrument_name}_{current_date}_by_program"
     print(f'creating {output_filename}.docx...')
     success = make_docx(output_filename, params, MEM_FILES, picture_size=6.5)
 

@@ -52,7 +52,7 @@ def make_docx(output_filename, params, MEM_FILES, picture_size) -> bool:
     document.add_paragraph('TEMPER', style='List Number')
     document.add_picture(MF_MT, width=Inches(picture_size))
 
-    document.add_paragraph('Результаты', style='List Number')
+    document.add_paragraph('Результаты при нагреве', style='List Number')
 
 
     table = document.add_table(rows=1, cols=5)

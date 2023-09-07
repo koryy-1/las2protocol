@@ -19,7 +19,7 @@ def moving_average(data, window_size):
 if __name__ == "__main__":
     cwd = os.getcwd().replace("\\", "/")
 
-    FILENAME = glob.glob('*.las')[0]
+    FILENAME = glob.glob('*.las')[1]
 
     print(f'reading {FILENAME}')
     try:
@@ -54,7 +54,7 @@ if __name__ == "__main__":
 
     MEM_FILES = (MF_RSD, MF_RLD, MF_RLD_ON_RSD, MF_MT)
 
-    ######
+    ###### for check find_temperature_rise_point_right
     # print(find_temperature_rise_point_right(las["MT"], 1))
 
     # choice: 1 - for heating, 2 - for cooling
@@ -66,8 +66,12 @@ if __name__ == "__main__":
     T_max_index, T_max = find_temperature_drop_point(las["MT"], 2)
     cooling_table = get_calculation_table(2, WINDOW_SIZE, las["MT"][T_max_index:], smoothed_RSD, smoothed_RLD, RLD_on_RSD)
 
-    conclusion = get_conclusion(heating_table)
-    conclusion = get_conclusion(heating_table) ###
+    conclusion = ''
+    if exceeds_threshold(heating_table) or exceeds_threshold(cooling_table):
+        conclusion = 'превышает'
+    else:
+        conclusion = 'не превышает'
+
 
     params = (
         serial_number, 
@@ -77,6 +81,8 @@ if __name__ == "__main__":
         cooling_table, 
         conclusion, 
         las["MT"].min(), 
+        las["MT"].max(),
+        las["MT"][-1], 
         las["MT"].max(),
         las["ADCS"][0],
         las["ADCL"][0],

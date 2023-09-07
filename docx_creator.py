@@ -14,8 +14,10 @@ def make_docx(output_filename, params, MEM_FILES, picture_size) -> bool:
         heating_results, 
         cooling_results, 
         conclusion, 
-        T_min, 
-        T_max,
+        T_min_heating, 
+        T_max_heating,
+        T_min_cooling, 
+        T_max_cooling,
         ADCS,
         ADCL,
     ) = params
@@ -60,7 +62,9 @@ def make_docx(output_filename, params, MEM_FILES, picture_size) -> bool:
     cooling_table = document.add_table(rows=1, cols=5)
     hdr_cells = cooling_table.rows[0].cells
     hdr_cells[0].text = 'п/п'
+    hdr_cells[0].width = Inches(0.4)
     hdr_cells[1].text = 'Формула'
+    hdr_cells[1].width = Inches(1.5)
     hdr_cells[2].text = 'RSD'
     hdr_cells[3].text = 'RLD'
     hdr_cells[4].text = 'RLD/RSD'
@@ -68,7 +72,9 @@ def make_docx(output_filename, params, MEM_FILES, picture_size) -> bool:
     for num, formula, RSD, RLD, RLD_ON_RSD in heating_results:
         row_cells = cooling_table.add_row().cells
         row_cells[0].text = str(num)
+        row_cells[0].width = Inches(0.4)
         row_cells[1].text = formula
+        row_cells[1].width = Inches(1.5)
         row_cells[2].text = str(RSD)
         row_cells[3].text = str(RLD)
         row_cells[4].text = str(RLD_ON_RSD)
@@ -82,7 +88,9 @@ def make_docx(output_filename, params, MEM_FILES, picture_size) -> bool:
     cooling_table = document.add_table(rows=1, cols=5)
     hdr_cells = cooling_table.rows[0].cells
     hdr_cells[0].text = 'п/п'
+    hdr_cells[0].width = Inches(0.4)
     hdr_cells[1].text = 'Формула'
+    hdr_cells[1].width = Inches(1.5)
     hdr_cells[2].text = 'RSD'
     hdr_cells[3].text = 'RLD'
     hdr_cells[4].text = 'RLD/RSD'
@@ -90,7 +98,9 @@ def make_docx(output_filename, params, MEM_FILES, picture_size) -> bool:
     for num, formula, RSD, RLD, RLD_ON_RSD in cooling_results:
         row_cells = cooling_table.add_row().cells
         row_cells[0].text = str(num)
+        row_cells[0].width = Inches(0.4)
         row_cells[1].text = formula
+        row_cells[1].width = Inches(1.5)
         row_cells[2].text = str(RSD)
         row_cells[3].text = str(RLD)
         row_cells[4].text = str(RLD_ON_RSD)
@@ -103,7 +113,7 @@ def make_docx(output_filename, params, MEM_FILES, picture_size) -> bool:
     conc_p = document.add_paragraph(style='List Number')
     conc_p.add_run('Выводы').bold = True
     document.add_paragraph(
-        f'Температурный уход сигналов RSD,  RLD  и  RLD/RSD  в диапазоне температур от {T_min} до {T_max} градусов {conclusion} 5%.'
+        f'Температурный уход сигналов RSD,  RLD  и  RLD/RSD  в диапазоне температур от {T_min_heating} до {T_max_heating} градусов и от {T_max_cooling} до {T_min_cooling} градусов {conclusion} 5%.'
     )
 
     document.add_paragraph()

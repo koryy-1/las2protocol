@@ -19,7 +19,7 @@ def moving_average(data, window_size):
 if __name__ == "__main__":
     cwd = os.getcwd().replace("\\", "/")
 
-    FILENAME = glob.glob('*.las')[1]
+    FILENAME = glob.glob('*.las')[0]
 
     print(f'reading {FILENAME}')
     try:
@@ -54,15 +54,27 @@ if __name__ == "__main__":
 
     MEM_FILES = (MF_RSD, MF_RLD, MF_RLD_ON_RSD, MF_MT)
 
-    table = get_calculation_table(WINDOW_SIZE, las["MT"][:np.argmax(las["MT"])], smoothed_RSD, smoothed_RLD, RLD_on_RSD)
+    ######
+    # print(find_temperature_rise_point_right(las["MT"], 1))
 
-    conclusion = get_conclusion(table)
+    # choice: 1 - for heating, 2 - for cooling
+    heating_table = get_calculation_table(1, WINDOW_SIZE, las["MT"][:np.argmax(las["MT"])], smoothed_RSD, smoothed_RLD, RLD_on_RSD)
+
+    # проделать вычисления для охлада
+    # для охлада базовая темп = последний минимум
+    # find_temperature_drop_point вычисляет точку в которой функция температуры начинает идти вниз
+    T_max_index, T_max = find_temperature_drop_point(las["MT"], 2)
+    cooling_table = get_calculation_table(2, WINDOW_SIZE, las["MT"][T_max_index:], smoothed_RSD, smoothed_RLD, RLD_on_RSD)
+
+    conclusion = get_conclusion(heating_table)
+    conclusion = get_conclusion(heating_table) ###
 
     params = (
         serial_number, 
         date, 
         instrument_name, 
-        table, 
+        heating_table, 
+        cooling_table, 
         conclusion, 
         las["MT"].min(), 
         las["MT"].max(),

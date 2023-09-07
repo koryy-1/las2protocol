@@ -11,7 +11,8 @@ def make_docx(output_filename, params, MEM_FILES, picture_size) -> bool:
         serial_number, 
         date, 
         instrument_name, 
-        records, 
+        heating_results, 
+        cooling_results, 
         conclusion, 
         T_min, 
         T_max,
@@ -52,26 +53,50 @@ def make_docx(output_filename, params, MEM_FILES, picture_size) -> bool:
     document.add_paragraph('TEMPER', style='List Number')
     document.add_picture(MF_MT, width=Inches(picture_size))
 
+
+    # for heating
     document.add_paragraph('Результаты при нагреве', style='List Number')
 
-
-    table = document.add_table(rows=1, cols=5)
-    hdr_cells = table.rows[0].cells
+    cooling_table = document.add_table(rows=1, cols=5)
+    hdr_cells = cooling_table.rows[0].cells
     hdr_cells[0].text = 'п/п'
     hdr_cells[1].text = 'Формула'
     hdr_cells[2].text = 'RSD'
     hdr_cells[3].text = 'RLD'
     hdr_cells[4].text = 'RLD/RSD'
     # print(records)
-    for num, formula, RSD, RLD, RLD_ON_RSD in records:
-        row_cells = table.add_row().cells
+    for num, formula, RSD, RLD, RLD_ON_RSD in heating_results:
+        row_cells = cooling_table.add_row().cells
         row_cells[0].text = str(num)
         row_cells[1].text = formula
         row_cells[2].text = str(RSD)
         row_cells[3].text = str(RLD)
         row_cells[4].text = str(RLD_ON_RSD)
 
-    table.style = 'Table Grid'
+    cooling_table.style = 'Table Grid'
+
+
+    # for cooling
+    document.add_paragraph('Результаты при охлаждении', style='List Number')
+
+    cooling_table = document.add_table(rows=1, cols=5)
+    hdr_cells = cooling_table.rows[0].cells
+    hdr_cells[0].text = 'п/п'
+    hdr_cells[1].text = 'Формула'
+    hdr_cells[2].text = 'RSD'
+    hdr_cells[3].text = 'RLD'
+    hdr_cells[4].text = 'RLD/RSD'
+    # print(records)
+    for num, formula, RSD, RLD, RLD_ON_RSD in cooling_results:
+        row_cells = cooling_table.add_row().cells
+        row_cells[0].text = str(num)
+        row_cells[1].text = formula
+        row_cells[2].text = str(RSD)
+        row_cells[3].text = str(RLD)
+        row_cells[4].text = str(RLD_ON_RSD)
+
+    cooling_table.style = 'Table Grid'
+    
     
     document.add_paragraph()
 

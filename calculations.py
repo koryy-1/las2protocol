@@ -1,27 +1,33 @@
 import numpy as np
 
 def get_calculation_table(
+        choice: int,
         WINDOW_SIZE: int,
         TEMPER: np.ndarray,  
         RSD: np.ndarray, 
         RLD: np.ndarray, 
         RLD_on_RSD: np.ndarray):
     
-    # взять первые 3-5 интервалов по 4 минуты или до первого изменения нач темпы и вычислить среднее значение
-    # получится значение RSD базовой по базовой темп
-    T_base_max_index, T_base = find_temperature_rise_point(TEMPER, 1)
-    print('T_base_max_index', T_base_max_index)
-    index_for_base_value = 0
-    if T_base_max_index < WINDOW_SIZE * 5:
-        index_for_base_value = T_base_max_index
-    else:
-        index_for_base_value = WINDOW_SIZE * 5
+    RSD_BASE = 0
+    RLD_BASE = 0
+    RLD_ON_RSD_BASE = 0
 
-    # после нахождения базовой температуры находим RSD_base RLD_base RLD_on_RSD_base
-    print(121231, RSD[:index_for_base_value])
-    RSD_BASE = np.average(RSD[:index_for_base_value])
-    RLD_BASE = np.average(RLD[:index_for_base_value])
-    RLD_ON_RSD_BASE = np.average(RLD_on_RSD[:index_for_base_value])
+    if choice == 1:
+        # взять первые или последние 3-5 интервалов по 4 минуты или до первого изменения нач темпы и вычислить среднее значение
+        # получится значение RSD базовой по базовой темп
+        T_base_max_index, T_base = find_temperature_rise_point(TEMPER, 1)
+        print('T_base_max_index', T_base_max_index)
+        index_for_base_value = 0
+        if T_base_max_index < WINDOW_SIZE * 5:
+            index_for_base_value = T_base_max_index
+        else:
+            index_for_base_value = WINDOW_SIZE * 5
+
+        # после нахождения базовой температуры находим RSD_base RLD_base RLD_on_RSD_base
+        print('for RSD_BASE', RSD[:index_for_base_value])
+        RSD_BASE = np.average(RSD[:index_for_base_value])
+        RLD_BASE = np.average(RLD[:index_for_base_value])
+        RLD_ON_RSD_BASE = np.average(RLD_on_RSD[:index_for_base_value])
     
     # RSD (RLD) +- 0.5% это для отличия флуктуации от максимума и минимума
 
@@ -67,10 +73,6 @@ def get_calculation_table(
         (7, '% MIN',                np.round(RSD_PERCENT_MIN * 100, 3),  np.round(RLD_PERCENT_MIN * 100, 3), np.round(RLD_ON_RSD_PERCENT_MIN * 100, 3))
     )
 
-    # проделать вычисления для охлада
-    # для охлада базовая темп = последний минимум
-    # print(find_temperature_drop_point(TEMPER, 3))
-
     return calculation_table
 
 def get_conclusion(calculation_table):
@@ -106,6 +108,16 @@ def find_temperature_rise_point(temp_data, tolerance_degrees):
         if temp_difference >= tolerance_degrees:
             return i, temp_data[i]  # Возвращаем индекс и значение температуры
     return None  # Если увеличения не обнаружено
+
+def find_temperature_rise_point_right(temp_data, tolerance_degrees):
+    for i in range(len(temp_data) - 1, 0, -1):
+        # Вычисляем разницу между текущим и следующим значением
+        temp_difference = temp_data[i] - temp_data[i - 1]
+        
+        # Если разница превышает заданный порог (tolerance_degrees), это может быть началом увеличения
+        if temp_difference >= tolerance_degrees:
+            return i-1, temp_data[i-1]  # Возвращаем индекс и значение температуры
+    return None  # Если увеличения не обнаружено справа
 
 def is_extremum_point(base, extremum_point, threshold):
     return abs(base - extremum_point) / base > threshold

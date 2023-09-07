@@ -40,7 +40,12 @@ if __name__ == "__main__":
     
     print('calculating moving average for RSD and RLD...')
     smoothed_RSD = moving_average(las["RSD"], WINDOW_SIZE)
+    smoothed_RSD = moving_average(smoothed_RSD, WINDOW_SIZE)
+    smoothed_RSD = moving_average(smoothed_RSD, WINDOW_SIZE)
+    
     smoothed_RLD = moving_average(las["RLD"], WINDOW_SIZE)
+    smoothed_RLD = moving_average(smoothed_RLD, WINDOW_SIZE)
+    smoothed_RLD = moving_average(smoothed_RLD, WINDOW_SIZE)
 
     print('creating plots...')
     MF_RSD = create_plot(las["TIME"], smoothed_RSD, "RSD_1")
@@ -57,14 +62,32 @@ if __name__ == "__main__":
     ###### for check find_temperature_rise_point_right
     # print(find_temperature_rise_point_right(las["MT"], 1))
 
+
+    # find_temperature_drop_point вычисляет точку в которой функция температуры начинает идти вниз
+    T_max_index, T_max = find_temperature_drop_point(las["MT"], 2)
+    # print(T_max_index)
+
     # choice: 1 - for heating, 2 - for cooling
-    heating_table = get_calculation_table(1, WINDOW_SIZE, las["MT"][:np.argmax(las["MT"])], smoothed_RSD, smoothed_RLD, RLD_on_RSD)
+    # print(las["MT"][:T_max_index])
+    heating_table = get_calculation_table(
+        1, 
+        WINDOW_SIZE, 
+        las["MT"][:T_max_index], 
+        smoothed_RSD[:T_max_index], 
+        smoothed_RLD[:T_max_index], 
+        RLD_on_RSD[:T_max_index])
 
     # проделать вычисления для охлада
     # для охлада базовая темп = последний минимум
-    # find_temperature_drop_point вычисляет точку в которой функция температуры начинает идти вниз
-    T_max_index, T_max = find_temperature_drop_point(las["MT"], 2)
-    cooling_table = get_calculation_table(2, WINDOW_SIZE, las["MT"][T_max_index:], smoothed_RSD, smoothed_RLD, RLD_on_RSD)
+    # print(las["MT"][T_max_index:])
+    cooling_table = get_calculation_table(
+        2, 
+        WINDOW_SIZE, 
+        las["MT"][T_max_index:], 
+        smoothed_RSD[T_max_index:], 
+        smoothed_RLD[T_max_index:], 
+        RLD_on_RSD[T_max_index:]
+        )
 
     conclusion = ''
     if exceeds_threshold(heating_table) or exceeds_threshold(cooling_table):

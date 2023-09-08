@@ -4,7 +4,6 @@ import glob
 import lasio
 import datetime
 import numpy as np
-import pandas as pd
 from calculations import *
 
 from docx_creator import make_docx
@@ -12,14 +11,10 @@ from docx_creator import make_docx
 from plot_creator import create_plot
 
 
-def moving_average(data, window_size):
-    return pd.Series(data).rolling(window=window_size).mean().iloc[window_size-1:].values
-
-
 if __name__ == "__main__":
     cwd = os.getcwd().replace("\\", "/")
 
-    FILENAME = glob.glob('*.las')[1]
+    FILENAME = glob.glob('*.las')[0]
 
     print(f'reading {FILENAME}')
     try:
@@ -36,16 +31,13 @@ if __name__ == "__main__":
     
     DURATION_1_COUNT = 4000
     WINDOW_SIZE = int(4 * 60 * 1000 / DURATION_1_COUNT)
-    print('WINDOW_SIZE', WINDOW_SIZE)
+    # print('WINDOW_SIZE', WINDOW_SIZE)
     
     print('calculating moving average for RSD and RLD...')
-    smoothed_RSD = moving_average(las["RSD"], WINDOW_SIZE)
-    smoothed_RSD = moving_average(smoothed_RSD, WINDOW_SIZE)
-    smoothed_RSD = moving_average(smoothed_RSD, WINDOW_SIZE)
+    smoothed_RSD = moving_average(las["RSD"], WINDOW_SIZE, 3)
     
-    smoothed_RLD = moving_average(las["RLD"], WINDOW_SIZE)
-    smoothed_RLD = moving_average(smoothed_RLD, WINDOW_SIZE)
-    smoothed_RLD = moving_average(smoothed_RLD, WINDOW_SIZE)
+    smoothed_RLD = moving_average(las["RLD"], WINDOW_SIZE, 3)
+
 
     print('creating plots...')
     MF_RSD = create_plot(las["TIME"], smoothed_RSD, "RSD_1")

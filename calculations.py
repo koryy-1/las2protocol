@@ -1,4 +1,5 @@
 import numpy as np
+import pandas as pd
 
 def get_calculation_table(
         choice: int,
@@ -150,3 +151,9 @@ def find_min_variance_interval(data, interval_length=60):
             min_variance_index = i
 
     return min_variance_interval, min_variance, min_variance_index
+
+def moving_average(data, window_size, count):
+    smoothed_data = data
+    for _ in range(count):
+        smoothed_data = pd.Series(smoothed_data).rolling(window=window_size).mean().iloc[window_size-1:].values
+    return smoothed_data

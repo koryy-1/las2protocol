@@ -113,7 +113,7 @@ def make_docx(output_filename, params, MEM_FILES, picture_size) -> bool:
     conc_p = document.add_paragraph(style='List Number')
     conc_p.add_run('Выводы').bold = True
     document.add_paragraph(
-        f'Температурный уход сигналов RSD,  RLD  и  RLD/RSD  в диапазоне температур от {T_min_heating} до {T_max_heating} градусов и от {T_max_cooling} до {T_min_cooling} градусов {conclusion} 5%.'
+        f'Температурный уход сигналов RSD,  RLD  и  RLD/RSD  в диапазоне температур от {int(T_min_heating)} до {int(T_max_heating)} градусов и от {int(T_max_cooling)} до {int(T_min_cooling)} градусов {conclusion} 5%.'
     )
 
     document.add_paragraph()

@@ -12,6 +12,40 @@ from plot_creator import create_plot
 
 
 if __name__ == "__main__":
+    DURATION_1_COUNT = 4000
+    window_size = int(4 * 60 * 1000 / DURATION_1_COUNT)
+    # print('WINDOW_SIZE', WINDOW_SIZE)
+    plot_part = 1
+    moving_average_count = 3
+
+    while True:
+        print('Выберите действие:')
+        print('1 - составить протокол')
+        print('2 - выбрать промежуток графика температуры для расчетов')
+        print('3 - изменить параметры')
+        choice = int(input('> '))
+        if choice == 1:
+            break
+        if choice == 2:
+            print('Выберите промежуток:')
+            print('1 - нагрев и охлаждение')
+            print('2 - только нагрев')
+            print('3 - только охлаждение')
+            plot_part = int(input('> '))
+        if choice == 3:
+            print('Что изменить?')
+            print('1 - размер окна')
+            print('2 - сколько раз применять функцию сглаживания')
+            choice2 = int(input('> '))
+            if choice2 == 1:
+                print('Введите размер окна:')
+                window_size = int(input('> '))
+            if choice2 == 2:
+                print('Введите кол-во разов:')
+                moving_average_count = int(input('> '))
+                
+
+
     cwd = os.getcwd().replace("\\", "/")
 
     FILENAME = glob.glob('*.las')[0]
@@ -21,7 +55,7 @@ if __name__ == "__main__":
         las = lasio.read(f"{cwd}/{FILENAME}", encoding="cp1251")
     except:
         print(f'ERROR: file {FILENAME} not found')
-        sys.exit() 
+        sys.exit()
         
 
     serial_number = las.well["SNUM"].value
@@ -29,14 +63,12 @@ if __name__ == "__main__":
     instrument_name = las.well["NAME"].value
 
     
-    DURATION_1_COUNT = 4000
-    WINDOW_SIZE = int(4 * 60 * 1000 / DURATION_1_COUNT)
-    # print('WINDOW_SIZE', WINDOW_SIZE)
+    
     
     print('calculating moving average for RSD and RLD...')
-    smoothed_RSD = moving_average(las["RSD"], WINDOW_SIZE, 3)
+    smoothed_RSD = moving_average(las["RSD"], window_size, moving_average_count)
     
-    smoothed_RLD = moving_average(las["RLD"], WINDOW_SIZE, 3)
+    smoothed_RLD = moving_average(las["RLD"], window_size, moving_average_count)
 
 
     print('creating plots...')
@@ -57,24 +89,30 @@ if __name__ == "__main__":
 
     # find_temperature_drop_point вычисляет точку в которой функция температуры начинает идти вниз
     T_max_index, T_max = find_temperature_drop_point(las["MT"], 2)
+    if not T_max_index:
+        print('program not defined boundaries beetwen heating and cooling')
+        print('exit from program')
+        sys.exit()
+
     # print(T_max_index)
 
     # choice: 1 - for heating, 2 - for cooling
     # print(las["MT"][:T_max_index])
     heating_table = get_calculation_table(
         1, 
-        WINDOW_SIZE, 
+        window_size, 
         las["MT"][:T_max_index], 
         smoothed_RSD[:T_max_index], 
         smoothed_RLD[:T_max_index], 
-        RLD_on_RSD[:T_max_index])
+        RLD_on_RSD[:T_max_index]
+        )
 
     # проделать вычисления для охлада
     # для охлада базовая темп = последний минимум
     # print(las["MT"][T_max_index:])
     cooling_table = get_calculation_table(
         2, 
-        WINDOW_SIZE, 
+        window_size, 
         las["MT"][T_max_index:], 
         smoothed_RSD[T_max_index:], 
         smoothed_RLD[T_max_index:], 

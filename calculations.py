@@ -1,5 +1,6 @@
 import numpy as np
 import pandas as pd
+import sys
 
 def get_calculation_table(
         choice: int,
@@ -19,6 +20,7 @@ def get_calculation_table(
         # взять первые или последние 3-5 интервалов по 4 минуты или до первого изменения нач темпы и вычислить среднее значение
         # получится значение RSD базовой по базовой темп
         T_base_max_index, T_base = find_temperature_rise_point(TEMPER, 1)
+        
         # print('T_base_max_index', T_base_max_index, T_base)
         index_for_base_value = 0
         if T_base_max_index < WINDOW_SIZE * 5:
@@ -120,7 +122,10 @@ def find_temperature_rise_point(temp_data, tolerance_degrees):
         # Если разница превышает заданный порог (tolerance_degrees), это может быть началом увеличения
         if temp_difference >= tolerance_degrees:
             return i, temp_data[i]  # Возвращаем индекс и значение температуры
-    return None  # Если увеличения не обнаружено
+    print('program not defined start of heating')
+    print('exit from program')
+    sys.exit()
+    # return None  # Если увеличения не обнаружено
 
 def find_temperature_rise_point_right(temp_data, tolerance_degrees):
     for i in range(len(temp_data) - 1, 0, -1):
@@ -130,7 +135,10 @@ def find_temperature_rise_point_right(temp_data, tolerance_degrees):
         # Если разница превышает заданный порог (tolerance_degrees), это может быть началом увеличения
         if temp_difference >= tolerance_degrees:
             return i, temp_data[i]  # Возвращаем индекс и значение температуры
-    return None  # Если увеличения не обнаружено справа
+    print('program not defined start of heating in right side of temp plot')
+    print('exit from program')
+    sys.exit()
+    # return None  # Если увеличения не обнаружено справа
 
 def is_extremum_point(base, extremum_point, threshold):
     return abs(base - extremum_point) / base > threshold

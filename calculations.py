@@ -1,8 +1,7 @@
 import numpy as np
 import pandas as pd
-import sys
 
-def get_calculation_table(
+def calculate_metrics(
         choice: int,
         WINDOW_SIZE: int,
         TEMPER: np.ndarray,  
@@ -10,52 +9,26 @@ def get_calculation_table(
         RLD: np.ndarray, 
         RLD_on_RSD: np.ndarray):
     
-    RSD_BASE = 0
-    RLD_BASE = 0
-    RLD_ON_RSD_BASE = 0
-    T_base = 0
+    """
+    Вычисляет метрики и создает таблицу.
 
-    # choice: 1 - for heating, 2 - for cooling
-    if choice == 1:
-        # взять первые или последние 3-5 интервалов по 4 минуты или до первого изменения нач темпы и вычислить среднее значение
-        # получится значение RSD базовой по базовой темп
-        T_base_max_index, T_base = find_temperature_rise_point(TEMPER, 1)
-        if not T_base_max_index:
-            return None
-        
-        # print('T_base_max_index', T_base_max_index, T_base)
-        index_for_base_value = 0
-        if T_base_max_index < WINDOW_SIZE * 5:
-            index_for_base_value = T_base_max_index
-        else:
-            index_for_base_value = WINDOW_SIZE * 5
+    Args:
+        choice (int): Выбор: 1 - для нагрева, 2 - для охлаждения.
+        TEMPER (np.ndarray): Массив с данными о температуре.
+        WINDOW_SIZE (int): Размер окна для вычислений.
+        RSD (np.ndarray): Данные RSD.
+        RLD (np.ndarray): Данные RLD.
+        RLD_on_RSD (np.ndarray): Данные RLD_on_RSD.
 
-        # после нахождения базовой температуры находим RSD_base RLD_base RLD_on_RSD_base
-        # print('for RSD_BASE', RSD[:index_for_base_value])
-        RSD_BASE = np.average(RSD[:index_for_base_value])
-        RLD_BASE = np.average(RLD[:index_for_base_value])
-        RLD_ON_RSD_BASE = np.average(RLD_on_RSD[:index_for_base_value])
-    elif choice == 2:
-        # взять первые или последние 3-5 интервалов по 4 минуты или до первого изменения нач темпы и вычислить среднее значение
-        # получится значение RSD базовой по базовой темп
-        T_base_max_index, T_base = find_temperature_rise_point_right(TEMPER, 1)
-        if not T_base_max_index:
-            return None
-        # print('T_base_max_index', T_base_max_index, T_base)
-        index_for_base_value = 0
-        if (len(TEMPER) - 1) - T_base_max_index < WINDOW_SIZE * 5:
-            index_for_base_value = T_base_max_index
-        else:
-            index_for_base_value = (len(TEMPER) - 1) - WINDOW_SIZE * 5
+    Returns:
+        tuple: Таблица с метриками.
+    """
+    
+    # Инициализация базовых значений
+    RSD_BASE, RLD_BASE, RLD_ON_RSD_BASE, T_base = initialize_base_values(choice, WINDOW_SIZE, TEMPER, RSD, RLD, RLD_on_RSD)
 
-        # после нахождения базовой температуры находим RSD_base RLD_base RLD_on_RSD_base
-        # print('for RSD_BASE', RSD[index_for_base_value:])
-        # print(len(TEMPER))
-        # print(len(RSD))
-        # print(index_for_base_value, T_base, RSD[index_for_base_value+1:], len(RSD))
-        RSD_BASE = np.average(RSD[(len(RSD) - 1) - ((len(TEMPER) - 1) - index_for_base_value):])
-        RLD_BASE = np.average(RLD[(len(RLD) - 1) - ((len(TEMPER) - 1) - index_for_base_value):])
-        RLD_ON_RSD_BASE = np.average(RLD_on_RSD[(len(RLD_on_RSD) - 1) - ((len(TEMPER) - 1) - index_for_base_value):])
+    # Вычисление максимальных и минимальных значений с учетом базовых
+    RSD_MAX, RLD_MAX, RLD_ON_RSD_MAX, RSD_MIN, RLD_MIN, RLD_ON_RSD_MIN = calculate_extremum_values(RSD, RLD, RLD_on_RSD, RSD_BASE, RLD_BASE, RLD_ON_RSD_BASE, TEMPER)
     
     # RSD (RLD) +- 0.5% это для отличия флуктуации от максимума и минимума
 
@@ -67,21 +40,21 @@ def get_calculation_table(
     RLD_MIN = (RLD.min(), TEMPER[RLD.argmin()]) if is_extremum_point(RLD_BASE, RLD.min(), 0.005) else (RLD_BASE, T_base)
     RLD_ON_RSD_MIN = (RLD_on_RSD.min(), TEMPER[RLD_on_RSD.argmin()]) if is_extremum_point(RLD_ON_RSD_BASE, RLD_on_RSD.min(), 0.005) else (RLD_ON_RSD_BASE, T_base)
 
-    RSD_MAX_BASE = RSD_MAX[0] - RSD_BASE
-    RLD_MAX_BASE = RLD_MAX[0] - RLD_BASE
-    RLD_ON_RSD_MAX_BASE = RLD_ON_RSD_MAX[0] - RLD_ON_RSD_BASE
+    RSD_MAX_DIFF = RSD_MAX[0] - RSD_BASE
+    RLD_MAX_DIFF = RLD_MAX[0] - RLD_BASE
+    RLD_ON_RSD_MAX_DIFF = RLD_ON_RSD_MAX[0] - RLD_ON_RSD_BASE
 
-    RSD_BASE_MIN = RSD_BASE - RSD_MIN[0]
-    RLD_BASE_MIN = RLD_BASE - RLD_MIN[0]
-    RLD_ON_RSD_BASE_MIN = RLD_ON_RSD_BASE - RLD_ON_RSD_MIN[0]
+    RSD_MIN_DIFF = RSD_BASE - RSD_MIN[0]
+    RLD_MIN_DIFF = RLD_BASE - RLD_MIN[0]
+    RLD_ON_RSD_MIN_DIFF = RLD_ON_RSD_BASE - RLD_ON_RSD_MIN[0]
 
-    RSD_PERCENT_MAX = RSD_MAX_BASE / RSD_BASE
-    RLD_PERCENT_MAX = RLD_MAX_BASE / RLD_BASE
-    RLD_ON_RSD_PERCENT_MAX = RLD_ON_RSD_MAX_BASE / RLD_ON_RSD_BASE
+    RSD_PERCENT_MAX = RSD_MAX_DIFF / RSD_BASE
+    RLD_PERCENT_MAX = RLD_MAX_DIFF / RLD_BASE
+    RLD_ON_RSD_PERCENT_MAX = RLD_ON_RSD_MAX_DIFF / RLD_ON_RSD_BASE
 
-    RSD_PERCENT_MIN = RSD_BASE_MIN / RSD_BASE
-    RLD_PERCENT_MIN = RLD_BASE_MIN / RLD_BASE
-    RLD_ON_RSD_PERCENT_MIN = RLD_ON_RSD_BASE_MIN / RLD_ON_RSD_BASE
+    RSD_PERCENT_MIN = RSD_MIN_DIFF / RSD_BASE
+    RLD_PERCENT_MIN = RLD_MIN_DIFF / RLD_BASE
+    RLD_ON_RSD_PERCENT_MIN = RLD_ON_RSD_MIN_DIFF / RLD_ON_RSD_BASE
     
     # print(RSD_BASE, np.round(RSD_BASE))
     # print(RLD_BASE, np.round(RLD_BASE))
@@ -90,24 +63,57 @@ def get_calculation_table(
         (1, f'N(T={int(T_base)})',       int(np.round(RSD_BASE)),         int(np.round(RLD_BASE)),        np.round(RLD_ON_RSD_BASE, 3)),
         (2, 'MAX/T',                f'{int(np.round(RSD_MAX[0]))}({RSD_MAX[1]})',        f'{int(np.round(RLD_MAX[0]))}({RLD_MAX[1]})',       f'{np.round(RLD_ON_RSD_MAX[0], 3)}({RLD_ON_RSD_MAX[1]})'),
         (3, 'MIN/T',                f'{int(np.round(RSD_MIN[0]))}({RSD_MIN[1]})',        f'{int(np.round(RLD_MIN[0]))}({RLD_MIN[1]})',       f'{np.round(RLD_ON_RSD_MIN[0], 3)}({RLD_ON_RSD_MIN[1]})'),
-        (4, f'MAX - N(T={int(T_base)})', int(np.round(RSD_MAX_BASE)),     int(np.round(RLD_MAX_BASE)),    np.round(RLD_ON_RSD_MAX_BASE, 3)),
-        (5, f'N(T={int(T_base)}) - MIN', int(np.round(RSD_BASE_MIN)),     int(np.round(RLD_BASE_MIN)),    np.round(RLD_ON_RSD_BASE_MIN, 3)),
+        (4, f'MAX - N(T={int(T_base)})', int(np.round(RSD_MAX_DIFF)),     int(np.round(RLD_MAX_DIFF)),    np.round(RLD_ON_RSD_MAX_DIFF, 3)),
+        (5, f'N(T={int(T_base)}) - MIN', int(np.round(RSD_MIN_DIFF)),     int(np.round(RLD_MIN_DIFF)),    np.round(RLD_ON_RSD_MIN_DIFF, 3)),
         (6, '% MAX',                np.round(RSD_PERCENT_MAX * 100, 2),  np.round(RLD_PERCENT_MAX * 100, 2), np.round(RLD_ON_RSD_PERCENT_MAX * 100, 2)),
         (7, '% MIN',                np.round(RSD_PERCENT_MIN * 100, 2),  np.round(RLD_PERCENT_MIN * 100, 2), np.round(RLD_ON_RSD_PERCENT_MIN * 100, 2))
     )
 
     return calculation_table
 
+def initialize_base_values(choice, WINDOW_SIZE, TEMPER, RSD, RLD, RLD_on_RSD):
+    RSD_BASE, RLD_BASE, RLD_ON_RSD_BASE, T_base = 0, 0, 0, 0
+
+    if choice == 1:
+        T_base_max_index, T_base = find_temperature_rise_point(TEMPER, 1)
+        if T_base_max_index:
+            index_for_base_value = min(T_base_max_index, WINDOW_SIZE * 5)
+            RSD_BASE = np.average(RSD[:index_for_base_value])
+            RLD_BASE = np.average(RLD[:index_for_base_value])
+            RLD_ON_RSD_BASE = np.average(RLD_on_RSD[:index_for_base_value])
+    elif choice == 2:
+        T_base_max_index, T_base = find_temperature_rise_point_right(TEMPER, 1)
+        if T_base_max_index:
+            interval_for_base_value = min((len(TEMPER) - 1) - T_base_max_index, WINDOW_SIZE * 5)
+            RSD_BASE = np.average(RSD[(len(RSD) - 1) - interval_for_base_value:])
+            RLD_BASE = np.average(RLD[(len(RLD) - 1) - interval_for_base_value:])
+            RLD_ON_RSD_BASE = np.average(RLD_on_RSD[(len(RLD_on_RSD) - 1) - interval_for_base_value:])
+
+    return RSD_BASE, RLD_BASE, RLD_ON_RSD_BASE, T_base
+
+def calculate_extremum_values(RSD, RLD, RLD_on_RSD, RSD_BASE, RLD_BASE, RLD_ON_RSD_BASE, TEMPER):
+    RSD_MAX = calculate_extremum(RSD, RSD_BASE, TEMPER)
+    RLD_MAX = calculate_extremum(RLD, RLD_BASE, TEMPER)
+    RLD_ON_RSD_MAX = calculate_extremum(RLD_on_RSD, RLD_ON_RSD_BASE, TEMPER)
+
+    RSD_MIN = calculate_extremum(RSD, RSD_BASE, TEMPER, is_max=False)
+    RLD_MIN = calculate_extremum(RLD, RLD_BASE, TEMPER, is_max=False)
+    RLD_ON_RSD_MIN = calculate_extremum(RLD_on_RSD, RLD_ON_RSD_BASE, TEMPER, is_max=False)
+
+    return RSD_MAX, RLD_MAX, RLD_ON_RSD_MAX, RSD_MIN, RLD_MIN, RLD_ON_RSD_MIN
+
+def calculate_extremum(data, base, TEMPER, is_max=True):
+    extremum_value = data.max() if is_max else data.min()
+    extremum_index = data.argmax() if is_max else data.argmin()
+    extremum_temperature = TEMPER[extremum_index]
+    return (extremum_value, extremum_temperature) if is_extremum_point(base, extremum_value, 0.005) else (base, TEMPER[extremum_index])
+
 def exceeds_threshold(calculation_table):
-    if (abs(calculation_table[5][2]) < 5 and
-        abs(calculation_table[5][3]) < 5 and
-        abs(calculation_table[5][4]) < 5 and
-        abs(calculation_table[6][2]) < 5 and
-        abs(calculation_table[6][3]) < 5 and
-        abs(calculation_table[6][4]) < 5):
-        return False
-    else:
-        return True
+    max_percent_diff = max(
+        abs(calculation_table[5][2]), abs(calculation_table[5][3]), abs(calculation_table[5][4]),
+        abs(calculation_table[6][2]), abs(calculation_table[6][3]), abs(calculation_table[6][4])
+    )
+    return max_percent_diff >= 5
     
 def find_temperature_drop_point(temp_data, tolerance_degrees):
     T_max_index = np.argmax(temp_data)
@@ -147,6 +153,9 @@ def find_temperature_rise_point_right(temp_data, tolerance_degrees):
     return None  # Если увеличения не обнаружено справа
 
 def is_extremum_point(base, extremum_point, threshold):
+    """
+    сравнивает отклонение экстремума от базового значения с пороговым значением.
+    """
     return abs(base - extremum_point) / base > threshold
 
 def find_min_variance_interval(data, interval_length=60):

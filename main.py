@@ -10,11 +10,68 @@ from docx_creator import make_docx
 
 from plot_creator import create_plot
 
+def get_calc_for_tables(
+        plot_part: int,
+        window_size: int,
+        TEMPER: np.ndarray,  
+        smoothed_RSD: np.ndarray, 
+        smoothed_RLD: np.ndarray, 
+        RLD_on_RSD: np.ndarray
+        ):
+    heating_table = None
+    cooling_table = None
+    if plot_part == 1 or plot_part == 2:
+        heating_table = get_calculation_table(
+            1, 
+            window_size, 
+            TEMPER[:T_max_index], 
+            smoothed_RSD[:T_max_index], 
+            smoothed_RLD[:T_max_index], 
+            RLD_on_RSD[:T_max_index]
+            )
+
+    # проделать вычисления для охлада
+    # для охлада базовая темп = последний минимум
+    # print(las["MT"][T_max_index:])
+    if plot_part == 1 or plot_part == 3:
+        cooling_table = get_calculation_table(
+            2, 
+            window_size, 
+            TEMPER[T_max_index:], 
+            smoothed_RSD[T_max_index:], 
+            smoothed_RLD[T_max_index:], 
+            RLD_on_RSD[T_max_index:]
+            )
+    
+    return heating_table, cooling_table
+
+def get_conclusion(heating_table, cooling_table):
+    if (
+        (heating_table and exceeds_threshold(heating_table))
+        or
+        (cooling_table and exceeds_threshold(cooling_table))
+        ):
+        return 'превышает'
+    else:
+        return 'не превышает'
+    
+def get_filename_las():
+    filenames = glob.glob('*.las')
+    if len(filenames) > 1:
+        print('Выберите, c какого файла считать данные:')
+        for i in range(len(filenames)):
+            print(f'{i + 1} - \"{filenames[i]}\"')
+        choosed_file = int(input('> '))
+        return filenames[choosed_file-1]
+    else:
+        return filenames[0]
+
 
 if __name__ == "__main__":
     DURATION_1_COUNT = 4000
     window_size = int(4 * 60 * 1000 / DURATION_1_COUNT)
     # print('WINDOW_SIZE', WINDOW_SIZE)
+    # 1 - heat and cool, 2 - only heat, 3 - only cool
     plot_part = 1
     moving_average_count = 3
 
@@ -45,16 +102,14 @@ if __name__ == "__main__":
                 moving_average_count = int(input('> '))
                 
 
-
     cwd = os.getcwd().replace("\\", "/")
+    filename = get_filename_las()
 
-    FILENAME = glob.glob('*.las')[0]
-
-    print(f'reading {FILENAME}')
+    print(f'reading {filename}')
     try:
-        las = lasio.read(f"{cwd}/{FILENAME}", encoding="cp1251")
+        las = lasio.read(f"{cwd}/{filename}", encoding="cp1251")
     except:
-        print(f'ERROR: file {FILENAME} not found')
+        print(f'ERROR: file {filename} not found')
         sys.exit()
         
 
@@ -62,8 +117,6 @@ if __name__ == "__main__":
     date = las.well["DATE"].value
     instrument_name = las.well["NAME"].value
 
-    
-    
     
     print('calculating moving average for RSD and RLD...')
     smoothed_RSD = moving_average(las["RSD"], window_size, moving_average_count)
@@ -91,40 +144,26 @@ if __name__ == "__main__":
     T_max_index, T_max = find_temperature_drop_point(las["MT"], 2)
     if not T_max_index:
         print('program not defined boundaries beetwen heating and cooling')
-        print('exit from program')
-        sys.exit()
+        print('may be temperature function only show heating')
+        plot_part = 2
+
 
     # print(T_max_index)
 
     # choice: 1 - for heating, 2 - for cooling
     # print(las["MT"][:T_max_index])
-    heating_table = get_calculation_table(
-        1, 
-        window_size, 
-        las["MT"][:T_max_index], 
-        smoothed_RSD[:T_max_index], 
-        smoothed_RLD[:T_max_index], 
-        RLD_on_RSD[:T_max_index]
+
+    (heating_table, cooling_table) = get_calc_for_tables(
+        plot_part,
+        window_size,
+        las["MT"],  
+        smoothed_RSD, 
+        smoothed_RLD, 
+        RLD_on_RSD
         )
 
-    # проделать вычисления для охлада
-    # для охлада базовая темп = последний минимум
-    # print(las["MT"][T_max_index:])
-    cooling_table = get_calculation_table(
-        2, 
-        window_size, 
-        las["MT"][T_max_index:], 
-        smoothed_RSD[T_max_index:], 
-        smoothed_RLD[T_max_index:], 
-        RLD_on_RSD[T_max_index:]
-        )
-
-    conclusion = ''
-    if exceeds_threshold(heating_table) or exceeds_threshold(cooling_table):
-        conclusion = 'превышает'
-    else:
-        conclusion = 'не превышает'
-
+    conclusion = get_conclusion(heating_table, cooling_table)
+    
 
     params = (
         serial_number, 
@@ -133,7 +172,7 @@ if __name__ == "__main__":
         heating_table, 
         cooling_table, 
         conclusion, 
-        las["MT"].min(), 
+        las["MT"][0], 
         las["MT"].max(),
         las["MT"][-1], 
         las["MT"].max(),

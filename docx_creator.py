@@ -57,55 +57,57 @@ def make_docx(output_filename, params, MEM_FILES, picture_size) -> bool:
 
 
     # for heating
-    document.add_paragraph('Результаты при нагреве', style='List Number')
+    if heating_results:
+        document.add_paragraph('Результаты при нагреве', style='List Number')
 
-    cooling_table = document.add_table(rows=1, cols=5)
-    hdr_cells = cooling_table.rows[0].cells
-    hdr_cells[0].text = 'п/п'
-    hdr_cells[0].width = Inches(0.4)
-    hdr_cells[1].text = 'Формула'
-    hdr_cells[1].width = Inches(1.5)
-    hdr_cells[2].text = 'RSD'
-    hdr_cells[3].text = 'RLD'
-    hdr_cells[4].text = 'RLD/RSD'
-    # print(records)
-    for num, formula, RSD, RLD, RLD_ON_RSD in heating_results:
-        row_cells = cooling_table.add_row().cells
-        row_cells[0].text = str(num)
-        row_cells[0].width = Inches(0.4)
-        row_cells[1].text = formula
-        row_cells[1].width = Inches(1.5)
-        row_cells[2].text = str(RSD)
-        row_cells[3].text = str(RLD)
-        row_cells[4].text = str(RLD_ON_RSD)
+        cooling_table = document.add_table(rows=1, cols=5)
+        hdr_cells = cooling_table.rows[0].cells
+        hdr_cells[0].text = 'п/п'
+        hdr_cells[0].width = Inches(0.4)
+        hdr_cells[1].text = 'Формула'
+        hdr_cells[1].width = Inches(1.5)
+        hdr_cells[2].text = 'RSD'
+        hdr_cells[3].text = 'RLD'
+        hdr_cells[4].text = 'RLD/RSD'
+        # print(records)
+        for num, formula, RSD, RLD, RLD_ON_RSD in heating_results:
+            row_cells = cooling_table.add_row().cells
+            row_cells[0].text = str(num)
+            row_cells[0].width = Inches(0.4)
+            row_cells[1].text = formula
+            row_cells[1].width = Inches(1.5)
+            row_cells[2].text = str(RSD)
+            row_cells[3].text = str(RLD)
+            row_cells[4].text = str(RLD_ON_RSD)
 
-    cooling_table.style = 'Table Grid'
+        cooling_table.style = 'Table Grid'
 
 
     # for cooling
-    document.add_paragraph('Результаты при охлаждении', style='List Number')
+    if cooling_results:
+        document.add_paragraph('Результаты при охлаждении', style='List Number')
 
-    cooling_table = document.add_table(rows=1, cols=5)
-    hdr_cells = cooling_table.rows[0].cells
-    hdr_cells[0].text = 'п/п'
-    hdr_cells[0].width = Inches(0.4)
-    hdr_cells[1].text = 'Формула'
-    hdr_cells[1].width = Inches(1.5)
-    hdr_cells[2].text = 'RSD'
-    hdr_cells[3].text = 'RLD'
-    hdr_cells[4].text = 'RLD/RSD'
-    # print(records)
-    for num, formula, RSD, RLD, RLD_ON_RSD in cooling_results:
-        row_cells = cooling_table.add_row().cells
-        row_cells[0].text = str(num)
-        row_cells[0].width = Inches(0.4)
-        row_cells[1].text = formula
-        row_cells[1].width = Inches(1.5)
-        row_cells[2].text = str(RSD)
-        row_cells[3].text = str(RLD)
-        row_cells[4].text = str(RLD_ON_RSD)
+        cooling_table = document.add_table(rows=1, cols=5)
+        hdr_cells = cooling_table.rows[0].cells
+        hdr_cells[0].text = 'п/п'
+        hdr_cells[0].width = Inches(0.4)
+        hdr_cells[1].text = 'Формула'
+        hdr_cells[1].width = Inches(1.5)
+        hdr_cells[2].text = 'RSD'
+        hdr_cells[3].text = 'RLD'
+        hdr_cells[4].text = 'RLD/RSD'
+        # print(records)
+        for num, formula, RSD, RLD, RLD_ON_RSD in cooling_results:
+            row_cells = cooling_table.add_row().cells
+            row_cells[0].text = str(num)
+            row_cells[0].width = Inches(0.4)
+            row_cells[1].text = formula
+            row_cells[1].width = Inches(1.5)
+            row_cells[2].text = str(RSD)
+            row_cells[3].text = str(RLD)
+            row_cells[4].text = str(RLD_ON_RSD)
 
-    cooling_table.style = 'Table Grid'
+        cooling_table.style = 'Table Grid'
     
     
     document.add_paragraph()

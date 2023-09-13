@@ -2,25 +2,11 @@ from docx import Document
 from docx.shared import Inches
 from docx.shared import Pt
 from docx.enum.text import WD_ALIGN_PARAGRAPH
+from calc_types import ParametersForReporting
 
 
-def make_docx(output_filename, params, MEM_FILES, picture_size) -> bool:
+def make_docx(output_filename, params_for_reporting: ParametersForReporting, MEM_FILES, picture_size) -> bool:
     (MF_RSD, MF_RLD, MF_RLD_ON_RSD, MF_MT) = MEM_FILES
-
-    (
-        serial_number, 
-        date, 
-        instrument_name, 
-        heating_results, 
-        cooling_results, 
-        conclusion, 
-        T_min_heating, 
-        T_max_heating,
-        T_min_cooling, 
-        T_max_cooling,
-        ADCS,
-        ADCL,
-    ) = params
 
     document = Document()
 
@@ -38,10 +24,10 @@ def make_docx(output_filename, params, MEM_FILES, picture_size) -> bool:
     p_header2_fmt.alignment = WD_ALIGN_PARAGRAPH.CENTER
 
 
-    document.add_paragraph(f'Прибор:                               №: {serial_number}', style='List Number')
-    document.add_paragraph(f'Канал:                                   {instrument_name}', style='List Number')
-    document.add_paragraph(f'Дата испытаний:                 {date}', style='List Number')
-    document.add_paragraph(f'Пороги: RSD - {ADCS} мВ, RLD - {ADCL} мВ. ', style='List Number')
+    document.add_paragraph(f'Прибор:                               №: {params_for_reporting.serial_number}', style='List Number')
+    document.add_paragraph(f'Канал:                                   {params_for_reporting.instrument_name}', style='List Number')
+    document.add_paragraph(f'Дата испытаний:                 {params_for_reporting.date}', style='List Number')
+    document.add_paragraph(f'Пороги: RSD - {int(params_for_reporting.RSD_threshold)} мВ, RLD - {int(params_for_reporting.RLD_threshold)} мВ. ', style='List Number')
 
     document.add_paragraph('RSD', style='List Number')
     document.add_picture(MF_RSD, width=Inches(picture_size))
@@ -57,7 +43,7 @@ def make_docx(output_filename, params, MEM_FILES, picture_size) -> bool:
 
 
     # for heating
-    if heating_results:
+    if params_for_reporting.heating_table is not None:
         document.add_paragraph('Результаты при нагреве', style='List Number')
 
         cooling_table = document.add_table(rows=1, cols=5)
@@ -70,7 +56,7 @@ def make_docx(output_filename, params, MEM_FILES, picture_size) -> bool:
         hdr_cells[3].text = 'RLD'
         hdr_cells[4].text = 'RLD/RSD'
         # print(records)
-        for num, formula, RSD, RLD, RLD_ON_RSD in heating_results:
+        for num, formula, RSD, RLD, RLD_ON_RSD in params_for_reporting.heating_table:
             row_cells = cooling_table.add_row().cells
             row_cells[0].text = str(num)
             row_cells[0].width = Inches(0.4)
@@ -84,7 +70,7 @@ def make_docx(output_filename, params, MEM_FILES, picture_size) -> bool:
 
 
     # for cooling
-    if cooling_results:
+    if params_for_reporting.cooling_table is not None:
         document.add_paragraph('Результаты при охлаждении', style='List Number')
 
         cooling_table = document.add_table(rows=1, cols=5)
@@ -97,7 +83,7 @@ def make_docx(output_filename, params, MEM_FILES, picture_size) -> bool:
         hdr_cells[3].text = 'RLD'
         hdr_cells[4].text = 'RLD/RSD'
         # print(records)
-        for num, formula, RSD, RLD, RLD_ON_RSD in cooling_results:
+        for num, formula, RSD, RLD, RLD_ON_RSD in params_for_reporting.cooling_table:
             row_cells = cooling_table.add_row().cells
             row_cells[0].text = str(num)
             row_cells[0].width = Inches(0.4)
@@ -115,7 +101,7 @@ def make_docx(output_filename, params, MEM_FILES, picture_size) -> bool:
     conc_p = document.add_paragraph(style='List Number')
     conc_p.add_run('Выводы').bold = True
     document.add_paragraph(
-        f'Температурный уход сигналов RSD,  RLD  и  RLD/RSD  в диапазоне температур от {int(T_min_heating)} до {int(T_max_heating)} градусов и от {int(T_max_cooling)} до {int(T_min_cooling)} градусов {conclusion} 5%.'
+        f'Температурный уход сигналов RSD,  RLD  и  RLD/RSD  в диапазоне температур от {int(params_for_reporting.temp_min_left)} до {int(params_for_reporting.temp_max)} градусов и от {int(params_for_reporting.temp_max)} до {int(params_for_reporting.temp_min_right)} градусов {params_for_reporting.conclusion} 5%.'
     )
 
     document.add_paragraph()

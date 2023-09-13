@@ -6,6 +6,8 @@ import datetime
 import numpy as np
 from calculations import *
 
+from calc_types import TemperatureType, ParametersForReporting
+
 from docx_creator import make_docx
 
 from plot_creator import create_plot
@@ -55,7 +57,7 @@ def get_calc_for_tables(
     cooling_table = None
     if plot_part == 1 or plot_part == 2:
         heating_table = calculate_metrics(
-            1, 
+            TemperatureType.HEATING, 
             window_size, 
             TEMPER[:T_max_index], 
             smoothed_RSD[:T_max_index], 
@@ -67,7 +69,7 @@ def get_calc_for_tables(
     # print(las["MT"][T_max_index:])
     if plot_part == 1 or plot_part == 3:
         cooling_table = calculate_metrics(
-            2, 
+            TemperatureType.COOLING, 
             window_size, 
             TEMPER[T_max_index:], 
             smoothed_RSD[T_max_index:], 
@@ -154,6 +156,7 @@ if __name__ == "__main__":
     # print(find_temperature_rise_point_right(las["MT"], 1))
 
 
+    # todo: случаи когда график темпы только растет или только падает
     # find_temperature_drop_point вычисляет точку в которой функция температуры начинает идти вниз
     T_max_index, T_max = find_temperature_drop_point(las["MT"], 2)
     if not T_max_index:
@@ -178,28 +181,24 @@ if __name__ == "__main__":
 
     conclusion = get_conclusion(heating_table, cooling_table)
     
-
-    params = (
-        serial_number, 
-        date, 
-        instrument_name, 
-        heating_table, 
-        cooling_table, 
-        conclusion, 
-        las["MT"][0], 
-        las["MT"].max(),
-        las["MT"][-1], 
-        las["MT"].max(),
-        las["ADCS"][0],
-        las["ADCL"][0],
-        )
-    # print(params)
+    params_for_reporting = ParametersForReporting()
+    params_for_reporting.serial_number = serial_number
+    params_for_reporting.date = date
+    params_for_reporting.instrument_name = instrument_name
+    params_for_reporting.heating_table = heating_table
+    params_for_reporting.cooling_table = cooling_table
+    params_for_reporting.conclusion = conclusion
+    params_for_reporting.temp_min_left = las["MT"][:T_max_index].min()
+    params_for_reporting.temp_max = las["MT"].max()
+    params_for_reporting.temp_min_right = las["MT"][T_max_index:].min()
+    params_for_reporting.RSD_threshold = las["ADCS"][0]
+    params_for_reporting.RLD_threshold = las["ADCL"][0]
 
  
     current_date = datetime.datetime.now().strftime('%d%m%y')
     output_filename = f"{serial_number}_{instrument_name}_{current_date}_by_program"
     print(f'creating {output_filename}.docx...')
-    success = make_docx(output_filename, params, MEM_FILES, picture_size=6.5)
+    success = make_docx(output_filename, params_for_reporting, MEM_FILES, picture_size=6.5)
 
     if (success):
         print('docx successfully saved')

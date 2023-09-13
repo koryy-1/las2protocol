@@ -118,6 +118,7 @@ if __name__ == "__main__":
         plot_part, 
         moving_average_count
     ) = get_params_from_user(DURATION_1_COUNT)
+    # todo: add config file
                 
 
     cwd = os.getcwd().replace("\\", "/")
@@ -191,8 +192,8 @@ if __name__ == "__main__":
     params_for_reporting.temp_min_left = las["MT"][:T_max_index].min()
     params_for_reporting.temp_max = las["MT"].max()
     params_for_reporting.temp_min_right = las["MT"][T_max_index:].min()
-    params_for_reporting.RSD_threshold = las["ADCS"][0]
-    params_for_reporting.RLD_threshold = las["ADCL"][0]
+    params_for_reporting.RSD_threshold = las["THLDS"][0]
+    params_for_reporting.RLD_threshold = las["THLDL"][0]
 
  
     current_date = datetime.datetime.now().strftime('%d%m%y')

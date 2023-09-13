@@ -98,10 +98,12 @@ def make_docx(output_filename, params_for_reporting: ParametersForReporting, MEM
     
     document.add_paragraph()
 
+    temp_ranges = get_temp_ranges(params_for_reporting)
+
     conc_p = document.add_paragraph(style='List Number')
     conc_p.add_run('Выводы').bold = True
     document.add_paragraph(
-        f'Температурный уход сигналов RSD,  RLD  и  RLD/RSD  в диапазоне температур от {int(params_for_reporting.temp_min_left)} до {int(params_for_reporting.temp_max)} градусов и от {int(params_for_reporting.temp_max)} до {int(params_for_reporting.temp_min_right)} градусов {params_for_reporting.conclusion} 5%.'
+        f'Температурный уход сигналов RSD,  RLD  и  RLD/RSD  в диапазоне температур {temp_ranges} {params_for_reporting.conclusion} 5%.'
     )
 
     document.add_paragraph()
@@ -118,3 +120,9 @@ def make_docx(output_filename, params_for_reporting: ParametersForReporting, MEM
         return True
     except:
         return False
+
+
+def get_temp_ranges(params_for_reporting: ParametersForReporting):
+    heating_range = f'от {int(params_for_reporting.temp_min_left)} до {int(params_for_reporting.temp_max)} градусов'
+    cooling_range = f'от {int(params_for_reporting.temp_max)} до {int(params_for_reporting.temp_min_right)} градусов'
+    return f'{heating_range if params_for_reporting.heating_table else ""}{" и " if params_for_reporting.heating_table and params_for_reporting.cooling_table else ""}{cooling_range if params_for_reporting.cooling_table else ""}'

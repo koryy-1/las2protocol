@@ -4,6 +4,7 @@ import glob
 import lasio
 import datetime
 import numpy as np
+import win32com.client
 from calculations import *
 
 from calc_types import TemperatureType, ParametersForReporting
@@ -104,7 +105,13 @@ def get_filename_las():
         return filenames[choosed_file-1]
     else:
         return filenames[0]
-
+    
+def close_active_docx_wnd(doc_name):
+    word_app = win32com.client.GetActiveObject("Word.Application")
+    for doc in word_app.Documents:
+        if doc.Name == doc_name:
+            doc.Close()
+            break
 
 if __name__ == "__main__":
     DURATION_1_COUNT = 4000
@@ -143,6 +150,9 @@ if __name__ == "__main__":
 
     print('creating plots...')
     MF_RSD = create_plot(las["TIME"], smoothed_RSD, "RSD_1")
+    delta_len = len(las["TIME"]) - len(smoothed_RSD)
+    # las["TIME"][:-delta_len]
+    # padded_smoothed_RSD = np.pad(smoothed_RSD, (delta_len, 0), mode='constant')
 
     MF_RLD = create_plot(las["TIME"], smoothed_RLD, "RLD_1")
 
@@ -195,18 +205,21 @@ if __name__ == "__main__":
     params_for_reporting.RSD_threshold = las["THLDS"][0]
     params_for_reporting.RLD_threshold = las["THLDL"][0]
 
- 
+
     current_date = datetime.datetime.now().strftime('%d%m%y')
     output_filename = f"{serial_number}_{instrument_name}_{current_date}_by_program"
     print(f'creating {output_filename}.docx...')
-    success = make_docx(output_filename, params_for_reporting, MEM_FILES, picture_size=6.5)
+    doc = make_docx(output_filename, params_for_reporting, MEM_FILES, picture_size=6.5)
 
-    if (success):
+    close_active_docx_wnd(f'{output_filename}.docx')
+
+    try:
+        doc.save(f'{output_filename}.docx')
         print('docx successfully saved')
         print('Done.')
-    else:
+    except:
         print()
-        print(f'ERROR: failed to save, please close document {output_filename}.docx')
+        print(f'ERROR: failed to save {output_filename}.docx')
     
 
     # las.to_excel('output.xlsx')

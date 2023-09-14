@@ -5,7 +5,7 @@ from docx.enum.text import WD_ALIGN_PARAGRAPH
 from calc_types import ParametersForReporting
 
 
-def make_docx(output_filename, params_for_reporting: ParametersForReporting, MEM_FILES, picture_size) -> bool:
+def make_docx(output_filename, params_for_reporting: ParametersForReporting, MEM_FILES, picture_size):
     (MF_RSD, MF_RLD, MF_RLD_ON_RSD, MF_MT) = MEM_FILES
 
     document = Document()
@@ -115,11 +115,23 @@ def make_docx(output_filename, params_for_reporting: ParametersForReporting, MEM
         'Составил:                                                                               А.Б. Овчаренко'
     )
 
-    try:
-        document.save(f'{output_filename}.docx')
-        return True
-    except:
-        return False
+    return document
+
+    # try:
+    #     document.save(f'{output_filename}.docx')
+    #     return True
+    # except:
+    #     return False
+    
+    # count = ''
+    # for i in range(100):
+    #     try:
+    #         document.save(f'{output_filename}{count}.docx')
+    #         return True
+    #     except:
+    #         count = f' ({i+1})'
+
+    # return False
 
 
 def get_temp_ranges(params_for_reporting: ParametersForReporting):

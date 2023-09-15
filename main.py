@@ -5,7 +5,9 @@ import lasio
 import datetime
 import numpy as np
 import win32com.client
+import tkinter as tk
 from calculations import *
+from GraphGUI import GraphGUI
 
 from calc_types import TemperatureType, ParametersForReporting
 
@@ -49,6 +51,7 @@ def get_params_from_user(DURATION_1_COUNT):
 def get_calc_for_tables(
         plot_part: int,
         window_size: int,
+        T_max_index: int,
         TEMPER: np.ndarray,  
         smoothed_RSD: np.ndarray, 
         smoothed_RLD: np.ndarray, 
@@ -106,14 +109,22 @@ def get_filename_las():
     else:
         return filenames[0]
     
+def is_doc_open():
+    try:
+        word_app = win32com.client.GetActiveObject("Word.Application")
+        return bool(word_app.ActiveDocument)
+    except:
+        return False
+    
 def close_active_docx_wnd(doc_name):
-    word_app = win32com.client.GetActiveObject("Word.Application")
-    for doc in word_app.Documents:
-        if doc.Name == doc_name:
-            doc.Close()
-            break
+    if is_doc_open():
+        word_app = win32com.client.GetActiveObject("Word.Application")
+        for doc in word_app.Documents:
+            if doc.Name == doc_name:
+                doc.Close()
+                break
 
-if __name__ == "__main__":
+def main():
     DURATION_1_COUNT = 4000
     window_size = int(4 * 60 * 1000 / DURATION_1_COUNT)
     # plot_part: 1 - heat and cool, 2 - only heat, 3 - only cool
@@ -147,10 +158,15 @@ if __name__ == "__main__":
     print('calculating moving average for RSD and RLD...')
     smoothed_RSD, smoothed_RLD = calculate_smoothed_data(las, window_size, moving_average_count)
 
+    delta_len = len(las["TIME"]) - len(smoothed_RSD)
+    root = tk.Tk()
+    app = GraphGUI(root)
+    app.x_arr = las["TIME"][:-delta_len]
+    app.y_arr = smoothed_RSD
+    app.run()
 
     print('creating plots...')
     MF_RSD = create_plot(las["TIME"], smoothed_RSD, "RSD_1")
-    delta_len = len(las["TIME"]) - len(smoothed_RSD)
     # las["TIME"][:-delta_len]
     # padded_smoothed_RSD = np.pad(smoothed_RSD, (delta_len, 0), mode='constant')
 
@@ -184,6 +200,7 @@ if __name__ == "__main__":
     (heating_table, cooling_table) = get_calc_for_tables(
         plot_part,
         window_size,
+        T_max_index,
         las["MT"],  
         smoothed_RSD, 
         smoothed_RLD, 
@@ -224,4 +241,10 @@ if __name__ == "__main__":
 
     # las.to_excel('output.xlsx')
 
+
+if __name__ == "__main__":
+    main()
+
+    
+    
     os.system('pause')

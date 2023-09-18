@@ -101,7 +101,7 @@ class LASFileAnalyzer(QMainWindow):
         if self.las:
             num_graphs = 4
             fig, axes = plt.subplots(num_graphs, 1, figsize=(8, 2))
-            plt.grid(True)
+            # plt.grid(True)
 
             smoothed_RSD, smoothed_RLD = calculate_smoothed_data(self.las, int(self.size_entry.text()), int(self.smooth_count_entry.text()))
 

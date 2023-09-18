@@ -24,6 +24,7 @@ def create_plot(x, y, plot_title: str) -> BytesIO:
 
 
 def create_plot_on_canvas(ax, x, y, plot_title: str):
+    ax.grid(True)
     ax.plot(y, label=plot_title)
     ax.set_ylim(y.min() * 0.9, y.max() * 1.1)
     ax.set_xlim(-200, len(x) * 1.2)

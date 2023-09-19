@@ -1,4 +1,4 @@
-from PyQt5.QtWidgets import QFormLayout, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QLabel, QLineEdit, QPushButton, QFileDialog, QCheckBox
+from PyQt5.QtWidgets import QFormLayout, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QLabel, QLineEdit, QSpinBox, QPushButton, QFileDialog, QCheckBox
 from PyQt5.QtCore import Qt
 from matplotlib.figure import Figure
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
@@ -60,9 +60,41 @@ class LASFileAnalyzer(QMainWindow):
         self.plot_button.clicked.connect(self.plot_graphs)
         params_layout.addWidget(self.plot_button)
 
+        # Создание кнопки "Обрезать"
+        self.cut_button = QPushButton("Обрезать")
+        self.cut_button.clicked.connect(self.crop_graph)
+
+        # ввод со стрелками
+        self.smoothed_RSD = []
+        self.smoothed_RLD = []
+        self.RLD_on_RSD = []
+        self.red_line_label_x = QLabel("X: ")
+        self.red_line_label_y = QLabel("")
+        self.x_red_line_spinbox = QSpinBox(self)
+        self.x_red_line_spinbox.setMaximum(2147483647)
+        self.x_red_line_spinbox.valueChanged.connect(self.update_red_line)
+
+        # layout for spinbox
+        spinbox_layout = QHBoxLayout()
+        spinbox_layout.setContentsMargins(0, 0, 20, 0)
+        spinbox_layout.addWidget(self.red_line_label_x)
+        spinbox_layout.addWidget(self.x_red_line_spinbox)
+        spinbox_layout.addWidget(self.red_line_label_y)
+
+        btns_layout = QHBoxLayout()
+        btns_layout.setAlignment(Qt.AlignmentFlag.AlignLeft)
+        btns_layout.setContentsMargins(20, 0, 0, 0)
+        btns_layout.addLayout(spinbox_layout)
+        btns_layout.addWidget(self.cut_button)
+
         # Создаем виджет Matplotlib для вывода графиков
-        self.canvas = FigureCanvas(Figure(figsize=(8, 2 * 4)))
+        self.canvas = FigureCanvas(Figure(figsize=(16, 16)))
+        # self.canvas.mpl_connect('button_press_event', self.on_mouse_press)
+        # self.canvas.mpl_connect('motion_notify_event', self.on_mouse_move)
+        # self.canvas.mpl_connect('button_release_event', self.on_mouse_release)
+
         graph_layout = QVBoxLayout()
+        graph_layout.addLayout(btns_layout)
         graph_layout.addWidget(self.canvas)
 
 		# Кнопка показать расчеты
@@ -86,6 +118,35 @@ class LASFileAnalyzer(QMainWindow):
 
         self.las = None
 
+        self.axes = None
+
+        # Создание красной вертикальной линии
+        self.red_line = []
+        self.move_x = 0
+
+        self.start_x = 0
+        self.dragging = False
+
+
+    def on_mouse_press(self, event):
+        print("press", int(event.xdata))
+        if event.button == 1:  # Проверяем, что нажата левая кнопка мыши
+            self.dragging = True
+            self.start_x = int(event.xdata)
+
+    def on_mouse_move(self, event):
+        print("move", int(event.xdata))
+        if self.dragging:
+            self.move_x = int(event.xdata)
+
+            # Обновляем значение в спинбоксе
+            self.x_red_line_spinbox.setValue(self.move_x)
+
+    def on_mouse_release(self, event):
+        print("release", int(event.xdata))
+        if self.dragging:
+            self.dragging = False
+
 
     def open_las_file(self):
         options = QFileDialog.Options()
@@ -99,26 +160,76 @@ class LASFileAnalyzer(QMainWindow):
 
     def plot_graphs(self):
         if self.las:
+            self.move_x = 0
+            self.x_red_line_spinbox.setValue(0)
             num_graphs = 4
-            fig, axes = plt.subplots(num_graphs, 1, figsize=(8, 2))
-            # plt.grid(True)
+            fig, self.axes = plt.subplots(num_graphs, 1, figsize=(8, 6))
 
-            smoothed_RSD, smoothed_RLD = calculate_smoothed_data(self.las, int(self.size_entry.text()), int(self.smooth_count_entry.text()))
-
-
-            # Заглушки для данных и обрезания графиков
-            create_plot_on_canvas(axes[0], self.las["TIME"], smoothed_RSD, "RSD_1")
-
-            create_plot_on_canvas(axes[1], self.las["TIME"], smoothed_RLD, "RLD_1")
-
-            RLD_on_RSD = smoothed_RLD / smoothed_RSD
-            create_plot_on_canvas(axes[2], self.las["TIME"], RLD_on_RSD, "RLD/RSD")
-
-            create_plot_on_canvas(axes[3], self.las["TIME"], self.las["MT"], "TEMPER")
-
-
+            self.smoothed_RSD, self.smoothed_RLD = calculate_smoothed_data(self.las, int(self.size_entry.text()), int(self.smooth_count_entry.text()))
+            create_plot_on_canvas(self.axes[0], self.las["TIME"], self.smoothed_RSD, "RSD_1")
+            create_plot_on_canvas(self.axes[1], self.las["TIME"], self.smoothed_RLD, "RLD_1")
+            
+            self.RLD_on_RSD = self.smoothed_RLD / self.smoothed_RSD
+            create_plot_on_canvas(self.axes[2], self.las["TIME"], self.RLD_on_RSD, "RLD/RSD")
+            create_plot_on_canvas(self.axes[3], self.las["TIME"], self.las["MT"], "TEMPER")
+            
             # Вывод графиков на виджет Matplotlib
             self.canvas.figure = fig
+            self.canvas.axes = self.axes
+            for ax in self.axes:
+                self.red_line.append(ax.axvline(0, color='red'))
+            self.canvas.draw()
+
+    def update_red_line(self, new_value):
+        if self.axes is None:
+            return
+        
+        self.move_x = new_value
+        
+        RSD_Y = int(np.round(self.smoothed_RSD[self.move_x]))
+        RLD_Y = int(np.round(self.smoothed_RLD[self.move_x]))
+        RLD_RSD_Y = np.round(self.RLD_on_RSD[self.move_x], 3)
+        TEMPER_Y = int(self.las["MT"][self.move_x])
+        
+        self.red_line_label_y.setText(f'RSD Y: {RSD_Y}   RLD Y: {RLD_Y}   RLD/RSD Y: {RLD_RSD_Y}   TEMPER Y: {TEMPER_Y}')
+
+        for i, ax in enumerate(self.axes):
+            self.red_line[i].remove()
+            self.red_line[i] = ax.axvline(self.move_x, color='red')
+            # if self.red_line is None:
+            #     self.red_line = ax.axvline(self.move_x, color='red')
+            # else:
+            #     self.red_line.set_xdata(self.move_x)
+        self.canvas.draw()
+
+    def crop_graph(self):
+        if self.las:
+            num_graphs = 4
+            fig, self.axes = plt.subplots(num_graphs, 1, figsize=(8, 6))
+
+            self.smoothed_RSD, self.smoothed_RLD = calculate_smoothed_data(self.las, int(self.size_entry.text()), int(self.smooth_count_entry.text()))
+            create_plot_on_canvas(self.axes[0], self.las["TIME"][self.move_x:], self.smoothed_RSD[self.move_x:], "RSD_1")
+            create_plot_on_canvas(self.axes[1], self.las["TIME"][self.move_x:], self.smoothed_RLD[self.move_x:], "RLD_1")
+            
+            self.RLD_on_RSD = self.smoothed_RLD / self.smoothed_RSD
+            create_plot_on_canvas(self.axes[2], self.las["TIME"][self.move_x:], self.RLD_on_RSD[self.move_x:], "RLD/RSD")
+            create_plot_on_canvas(self.axes[3], self.las["TIME"][self.move_x:], self.las["MT"][self.move_x:], "TEMPER")
+
+            
+            
+            # self.move_x = 0
+            self.x_red_line_spinbox.setValue(0)
+
+            # Вывод графиков на виджет Matplotlib
+            ### todo: fix this
+            fig.canvas.mpl_connect('button_press_event', self.on_mouse_press)
+            fig.canvas.mpl_connect('motion_notify_event', self.on_mouse_move)
+            fig.canvas.mpl_connect('button_release_event', self.on_mouse_release)
+            self.canvas.figure = fig
+            self.canvas.axes = self.axes
+            for i, ax in enumerate(self.axes):
+                self.red_line[i].remove()
+                self.red_line[i] = (ax.axvline(0, color='red'))
             self.canvas.draw()
     
     def save_to_docx(self):

@@ -8,7 +8,7 @@ import lasio
 
 from process_sample import calculate_smoothed_data, save2doc
 
-from plot_creator import create_plot_on_canvas
+from plot_creator import create_graph_on_canvas
 
 class LASFileAnalyzer(QMainWindow):
     def __init__(self):
@@ -62,7 +62,7 @@ class LASFileAnalyzer(QMainWindow):
 
         # Создание кнопки "Обрезать"
         self.cut_button = QPushButton("Обрезать")
-        self.cut_button.clicked.connect(self.crop_graph)
+        self.cut_button.clicked.connect(self.crop_graphs)
 
         # ввод со стрелками
         self.smoothed_RSD = []
@@ -108,7 +108,11 @@ class LASFileAnalyzer(QMainWindow):
         self.save_button = QPushButton("Сохранить в .docx файл")
         self.save_button.clicked.connect(self.save_to_docx)
         params_layout.addWidget(self.save_button)
+        self.success_label = QLabel("")
+        params_layout.addWidget(self.success_label)
 
+        # self.save_excel_button
+        # las.to_excel('output.xlsx')
 
         # Создаем главный горизонтальный макет для размещения виджета с параметрами и виджета с графиками
         main_layout = QHBoxLayout()
@@ -178,11 +182,59 @@ class LASFileAnalyzer(QMainWindow):
         for ax in self.axes:
             ax.clear()
 
-    def update_graphs(self):
-        # Вывод графиков на виджет Matplotlib
-        self.ensure_red_line_created()
-        
+    def calc_data(self):
+        self.smoothed_RSD, self.smoothed_RLD = calculate_smoothed_data(
+            self.las, 
+            int(self.size_entry.text()), 
+            int(self.smooth_count_entry.text())
+        )
+        self.RLD_on_RSD = np.divide(self.smoothed_RLD, self.smoothed_RSD)
+        delta_len = len(self.las["MT"]) - len(self.smoothed_RSD)
+        # padded_smoothed_RSD = np.pad(smoothed_RSD, (delta_len, 0), mode='constant')
+        self.TEMPER = self.las["MT"][delta_len:]
+        self.TIME = self.las["TIME"][delta_len:]
+
+    def crop_data(self):
+        self.smoothed_RSD = self.smoothed_RSD[self.move_x:]
+        self.smoothed_RLD = self.smoothed_RLD[self.move_x:]
+        self.RLD_on_RSD = self.RLD_on_RSD[self.move_x:]
+        self.TEMPER = self.TEMPER[self.move_x:]
+        self.TIME = self.TIME[self.move_x:]
+
+
+    def update_red_line_label(self, line_pos_x):
+        RSD_Y = int(np.round(self.smoothed_RSD[line_pos_x]))
+        RLD_Y = int(np.round(self.smoothed_RLD[line_pos_x]))
+        RLD_RSD_Y = np.round(self.RLD_on_RSD[line_pos_x], 3)
+        TEMPER_Y = int(self.TEMPER[line_pos_x])
+        self.red_line_label_y.setText(f'\tRSD Y: {RSD_Y}\tRLD Y: {RLD_Y}\tRLD/RSD Y: {RLD_RSD_Y}\tTEMPER Y: {TEMPER_Y}')
+
+    def ensure_red_line_created(self):
+        if len(self.red_line) == 0:
+            for ax in self.axes:
+                self.red_line.append(ax.axvline(0, color='red'))
+
+    def draw_red_line(self):
+        for i, ax in enumerate(self.axes):
+            self.red_line[i].remove()
+            self.red_line[i] = ax.axvline(self.move_x, color='red')
         self.canvas.draw()
+
+    def update_red_line(self, new_value):
+        if self.axes is None:
+            return
+        
+        if len(self.smoothed_RSD) < new_value:
+            new_value = len(self.smoothed_RSD)
+
+        if new_value < 0:
+            new_value = 0
+        
+        self.move_x = new_value
+        
+        self.update_red_line_label(self.move_x)
+
+        self.draw_red_line()
 
 
     def plot_graphs(self):
@@ -194,97 +246,73 @@ class LASFileAnalyzer(QMainWindow):
         
         self.clear_graphs()
         
+        self.calc_data()
+
+        create_graph_on_canvas(self.axes[0], self.TIME, self.smoothed_RSD, "RSD_1")
+        create_graph_on_canvas(self.axes[1], self.TIME, self.smoothed_RLD, "RLD_1")
+        create_graph_on_canvas(self.axes[2], self.TIME, self.RLD_on_RSD, "RLD/RSD")
+        create_graph_on_canvas(self.axes[3], self.TIME, self.TEMPER, "TEMPER")
+
+        self.x_red_line_spinbox.setMaximum(len(self.smoothed_RSD) - 1)
         self.x_red_line_spinbox.setValue(0)
+        if self.move_x == 0:
+            self.draw_red_line()
 
-        self.smoothed_RSD, self.smoothed_RLD = calculate_smoothed_data(self.las, int(self.size_entry.text()), int(self.smooth_count_entry.text()))
-        self.RLD_on_RSD = np.divide(self.smoothed_RLD, self.smoothed_RSD)
-        delta_len = len(self.las["MT"]) - len(self.smoothed_RSD)
-        self.TEMPER = self.las["MT"][delta_len:]
-        self.TIME = self.las["TIME"]
-
-        create_plot_on_canvas(self.axes[0], self.TIME, self.smoothed_RSD, "RSD_1")
-        create_plot_on_canvas(self.axes[1], self.TIME, self.smoothed_RLD, "RLD_1")
+        self.canvas.draw()
         
-        create_plot_on_canvas(self.axes[2], self.TIME, self.RLD_on_RSD, "RLD/RSD")
-        create_plot_on_canvas(self.axes[3], self.TIME, self.TEMPER, "TEMPER")
-
-        RSD_Y = int(np.round(self.smoothed_RSD[0]))
-        RLD_Y = int(np.round(self.smoothed_RLD[0]))
-        RLD_RSD_Y = np.round(self.RLD_on_RSD[0], 3)
-        TEMPER_Y = int(self.las["MT"][0])
-        self.red_line_label_y.setText(f'RSD Y: {RSD_Y}   RLD Y: {RLD_Y}   RLD/RSD Y: {RLD_RSD_Y}   TEMPER Y: {TEMPER_Y}')
-
-        self.update_graphs()
-        
-    def crop_graph(self):
+    def crop_graphs(self):
         if self.las is None:
             return
         
-        num_graphs = 4
-        fig, self.axes = plt.subplots(num_graphs, 1, figsize=(8, 6))
+        self.clear_graphs()
 
-        self.smoothed_RSD = self.smoothed_RSD[self.move_x:]
-        self.smoothed_RLD = self.smoothed_RLD[self.move_x:]
-        self.RLD_on_RSD = self.RLD_on_RSD[self.move_x:]
-        self.TEMPER = self.TEMPER[self.move_x:]
-        self.TIME = self.TIME[self.move_x:]
+        self.crop_data()
 
-        create_plot_on_canvas(self.axes[0], self.TIME, self.smoothed_RSD, "RSD_1")
-        create_plot_on_canvas(self.axes[1], self.TIME, self.smoothed_RLD, "RLD_1")
-        
-        self.RLD_on_RSD = self.smoothed_RLD / self.smoothed_RSD
-        create_plot_on_canvas(self.axes[2], self.TIME, self.RLD_on_RSD, "RLD/RSD")
-        create_plot_on_canvas(self.axes[3], self.TIME, self.TEMPER, "TEMPER")
-        
+        create_graph_on_canvas(self.axes[0], self.TIME, self.smoothed_RSD, "RSD_1")
+        create_graph_on_canvas(self.axes[1], self.TIME, self.smoothed_RLD, "RLD_1")
+        create_graph_on_canvas(self.axes[2], self.TIME, self.RLD_on_RSD, "RLD/RSD")
+        create_graph_on_canvas(self.axes[3], self.TIME, self.TEMPER, "TEMPER")
+
+        self.x_red_line_spinbox.setMaximum(len(self.smoothed_RSD) - 1)
         self.x_red_line_spinbox.setValue(0)
+        if self.move_x == 0:
+            self.draw_red_line()
 
-        self.update_graphs(fig)
-        
-    def ensure_red_line_created(self):
-        if len(self.red_line) == 0 or self.axes is not None:
-            for ax in self.axes:
-                self.red_line.append(ax.axvline(0, color='red'))
-
-    def update_red_line(self, new_value):
-        if self.axes is None:
-            return
-        
-        if len(self.smoothed_RSD) < new_value:
-            new_value = len(self.smoothed_RSD) - 1
-
-        if new_value < 0:
-            new_value = 0
-        
-        self.move_x = new_value
-        
-        RSD_Y = int(np.round(self.smoothed_RSD[self.move_x]))
-        RLD_Y = int(np.round(self.smoothed_RLD[self.move_x]))
-        RLD_RSD_Y = np.round(self.RLD_on_RSD[self.move_x], 3)
-        TEMPER_Y = int(self.las["MT"][self.move_x])
-        self.red_line_label_y.setText(f'RSD Y: {RSD_Y}   RLD Y: {RLD_Y}   RLD/RSD Y: {RLD_RSD_Y}   TEMPER Y: {TEMPER_Y}')
-
-        for i, ax in enumerate(self.axes):
-            self.red_line[i].remove()
-            self.red_line[i] = ax.axvline(self.move_x, color='red')
-            # if self.red_line is None:
-            #     self.red_line = ax.axvline(self.move_x, color='red')
-            # else:
-            #     self.red_line.set_xdata(self.move_x)
         self.canvas.draw()
-
-    
+        
     
     def save_to_docx(self):
         if self.las is None:
             return
-        
-        save2doc(
+
+        self.success_label.setText("processing...")
+
+        serial_number = self.las.well["SNUM"].value
+        date = self.las.well["DATE"].value
+        instrument_name = self.las.well["NAME"].value
+
+        description = (serial_number, date, instrument_name)
+
+        # 2 tuples
+        data = self.smoothed_RSD, self.smoothed_RLD, self.RLD_on_RSD, self.TEMPER, self.TIME
+
+        thresholds = self.las["THLDS"][0], self.las["THLDL"][0]
+
+        success = save2doc(
             int(self.size_entry.text()),
             bool(self.process_heat_checkbox.isChecked()),
             bool(self.process_cool_checkbox.isChecked()),
             int(self.smooth_count_entry.text()),
-            self.las
+            description,
+            data,
+            thresholds
         )
+
+        if success:
+            self.success_label.setText("docx saved successfully")
+        else:
+            self.success_label.setText("ERROR: failed to save docx")
+
 
     def show_calculations(self):
         # Здесь вы можете добавить код для отображения расчетов

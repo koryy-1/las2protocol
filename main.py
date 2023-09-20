@@ -5,8 +5,6 @@ from LASFileAnalyzer import LASFileAnalyzer
 
 
 if __name__ == "__main__":
-    # main()
-
     app = QApplication(sys.argv)
     window = LASFileAnalyzer()
     window.show()

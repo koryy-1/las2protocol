@@ -6,9 +6,10 @@ import matplotlib.pyplot as plt
 import numpy as np
 import lasio
 
-from process_sample import calculate_smoothed_data, save2doc
+from process_sample import calculate_smoothed_data, get_calc_for_tables, save2doc
 
 from plot_creator import create_graph_on_canvas
+from utils import find_temperature_drop_point
 
 class LASFileAnalyzer(QMainWindow):
     def __init__(self):
@@ -315,5 +316,31 @@ class LASFileAnalyzer(QMainWindow):
 
 
     def show_calculations(self):
-        # Здесь вы можете добавить код для отображения расчетов
-        pass
+        if self.las is None:
+            return
+
+        is_heating = self.process_heat_checkbox.isChecked()
+        is_cooling = self.process_cool_checkbox.isChecked()
+        window_size = int(self.size_entry.text())
+
+        T_max_index, _ = find_temperature_drop_point(self.TEMPER, 2)
+        if not T_max_index:
+            print('program not defined boundaries beetwen heating and cooling')
+            print('may be temperature function only show heating')
+            is_cooling = False
+
+        heating_table, cooling_table = get_calc_for_tables(
+            is_heating, is_cooling, window_size, T_max_index,
+            self.TEMPER, self.smoothed_RSD, self.smoothed_RLD, self.RLD_on_RSD
+        )
+
+        if is_heating:
+            self.show_table("Расчеты для нагрева", heating_table)
+
+        if is_cooling:
+            self.show_table("Расчеты для охлаждения", cooling_table)
+
+    def show_table(self, title, data):
+        print(title)
+        print(data)
+

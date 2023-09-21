@@ -1,4 +1,4 @@
-from PyQt5.QtWidgets import QFormLayout, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QLabel, QLineEdit, QSpinBox, QPushButton, QFileDialog, QCheckBox
+from PyQt5.QtWidgets import QFormLayout, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QLabel, QLineEdit, QSpinBox, QPushButton, QFileDialog, QCheckBox, QRadioButton
 from PyQt5.QtCore import Qt
 from matplotlib.figure import Figure
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
@@ -6,10 +6,12 @@ import matplotlib.pyplot as plt
 import numpy as np
 import lasio
 
+from calc_types import DeviceType
+
 from process_sample import calculate_smoothed_data, get_calc_for_tables, save2doc
 
 from plot_creator import create_graph_on_canvas
-from utils import find_temperature_drop_point
+from utils import find_temperature_drop_point, moving_average
 
 class LASFileAnalyzer(QMainWindow):
     def __init__(self):
@@ -37,6 +39,13 @@ class LASFileAnalyzer(QMainWindow):
         self.process_heat_checkbox.setChecked(True)
         self.process_cool_checkbox = QCheckBox("Охлаждение")
         self.process_cool_checkbox.setChecked(True)
+        # Тип прибора
+        self.device_type_gamma_radio_btn = QRadioButton("Gamma")
+        self.device_type_gamma_radio_btn.setChecked(True)
+        self.device_type_gamma_radio_btn.toggled.connect(self.set_device_type_gamma)
+
+        self.device_type_neutronic_radio_btn = QRadioButton("Neutronic")
+        self.device_type_neutronic_radio_btn.toggled.connect(self.set_device_type_neutronic)
 
         # Создаем виджет для параметров с использованием QFormLayout
         form_layout = QFormLayout()
@@ -44,6 +53,8 @@ class LASFileAnalyzer(QMainWindow):
         form_layout.addRow("Количество применений сглаживания:", self.smooth_count_entry)
         form_layout.addRow("Какую часть графика обрабатывать:", self.process_heat_checkbox)
         form_layout.addRow("", self.process_cool_checkbox)
+        form_layout.addRow("Тип прибора:", self.device_type_gamma_radio_btn)
+        form_layout.addRow("", self.device_type_neutronic_radio_btn)
         params_layout.addLayout(form_layout)
 
 
@@ -66,9 +77,9 @@ class LASFileAnalyzer(QMainWindow):
         self.cut_button.clicked.connect(self.crop_graphs)
 
         # ввод со стрелками
-        self.smoothed_RSD = []
-        self.smoothed_RLD = []
-        self.RLD_on_RSD = []
+        self.smoothed_near_probe = []
+        self.smoothed_far_probe = []
+        self.far_on_near_probe = []
         self.TEMPER = []
         self.TIME = []
         self.red_line_label_x = QLabel("X: ")
@@ -85,16 +96,13 @@ class LASFileAnalyzer(QMainWindow):
         spinbox_layout.addWidget(self.red_line_label_y)
 
         btns_layout = QHBoxLayout()
-        btns_layout.setAlignment(Qt.AlignmentFlag.AlignLeft)
+        # btns_layout.setAlignment(Qt.AlignmentFlag.AlignLeft)
         btns_layout.setContentsMargins(20, 0, 0, 0)
         btns_layout.addLayout(spinbox_layout)
-        btns_layout.addWidget(self.cut_button)
+        btns_layout.addWidget(self.cut_button, 0, Qt.AlignmentFlag.AlignRight)
 
         # Создаем виджет Matplotlib для вывода графиков
         self.canvas = FigureCanvas(Figure(figsize=(16, 16)))
-        # self.canvas.mpl_connect('button_press_event', self.on_mouse_press)
-        # self.canvas.mpl_connect('motion_notify_event', self.on_mouse_move)
-        # self.canvas.mpl_connect('button_release_event', self.on_mouse_release)
 
         graph_layout = QVBoxLayout()
         graph_layout.addLayout(btns_layout)
@@ -124,6 +132,19 @@ class LASFileAnalyzer(QMainWindow):
         main_widget.setLayout(main_layout)
 
         self.las = None
+
+        self.device_type = DeviceType.GAMMA
+
+        self.columns_data = {
+            f'{DeviceType.GAMMA}': {
+                'near_probe': 'RSD',
+                'far_probe': 'RLD'
+            },
+            f'{DeviceType.NEUTRONIC}': {
+                'near_probe': 'NTNC',
+                'far_probe': 'FTNC'
+            },
+        }
 
         self.axes = []
 
@@ -163,8 +184,22 @@ class LASFileAnalyzer(QMainWindow):
             # Здесь вы можете добавить код для обработки выбранного .las файла
             self.file_path_label.setText(file_path.split("/")[-1])
             self.las = lasio.read(file_path, encoding="cp1251")
+
+            self.define_device_type()
             
             self.plot_graphs()
+
+    def define_device_type(self):
+        if "RSD" in self.las.keys():
+            self.device_type_gamma_radio_btn.setChecked(True)
+        elif "NTNC" in self.las.keys():
+            self.device_type_neutronic_radio_btn.setChecked(True)
+
+    def set_device_type_gamma(self):
+        self.device_type = DeviceType.GAMMA
+
+    def set_device_type_neutronic(self):
+        self.device_type = DeviceType.NEUTRONIC
 
     def create_figure(self):
         fig, self.axes = plt.subplots(4, 1, figsize=(8, 6))
@@ -184,31 +219,40 @@ class LASFileAnalyzer(QMainWindow):
             ax.clear()
 
     def calc_data(self):
-        self.smoothed_RSD, self.smoothed_RLD = calculate_smoothed_data(
-            self.las, 
+        near_probe_title = self.columns_data[f"{self.device_type}"]["near_probe"]
+        far_probe_title = self.columns_data[f"{self.device_type}"]["far_probe"]
+        self.smoothed_near_probe = moving_average(
+            self.las[near_probe_title], 
             int(self.size_entry.text()), 
             int(self.smooth_count_entry.text())
         )
-        self.RLD_on_RSD = np.divide(self.smoothed_RLD, self.smoothed_RSD)
-        delta_len = len(self.las["MT"]) - len(self.smoothed_RSD)
-        # padded_smoothed_RSD = np.pad(smoothed_RSD, (delta_len, 0), mode='constant')
+        self.smoothed_far_probe = moving_average(
+            self.las[far_probe_title], 
+            int(self.size_entry.text()), 
+            int(self.smooth_count_entry.text())
+        )
+        self.far_on_near_probe = np.divide(self.smoothed_far_probe, self.smoothed_near_probe)
+        delta_len = len(self.las["MT"]) - len(self.smoothed_near_probe)
+        # padded_smoothed_near_probe = np.pad(smoothed_near_probe, (delta_len, 0), mode='constant')
         self.TEMPER = self.las["MT"][delta_len:]
         self.TIME = self.las["TIME"][delta_len:]
 
     def crop_data(self):
-        self.smoothed_RSD = self.smoothed_RSD[self.move_x:]
-        self.smoothed_RLD = self.smoothed_RLD[self.move_x:]
-        self.RLD_on_RSD = self.RLD_on_RSD[self.move_x:]
+        self.smoothed_near_probe = self.smoothed_near_probe[self.move_x:]
+        self.smoothed_far_probe = self.smoothed_far_probe[self.move_x:]
+        self.far_on_near_probe = self.far_on_near_probe[self.move_x:]
         self.TEMPER = self.TEMPER[self.move_x:]
         self.TIME = self.TIME[self.move_x:]
 
 
     def update_red_line_label(self, line_pos_x):
-        RSD_Y = int(np.round(self.smoothed_RSD[line_pos_x]))
-        RLD_Y = int(np.round(self.smoothed_RLD[line_pos_x]))
-        RLD_RSD_Y = np.round(self.RLD_on_RSD[line_pos_x], 3)
+        NEAR_PROBE_Y = int(np.round(self.smoothed_near_probe[line_pos_x]))
+        FAR_PROBE_Y = int(np.round(self.smoothed_far_probe[line_pos_x]))
+        FAR_ON_NEAR_PROBE_Y = np.round(self.far_on_near_probe[line_pos_x], 3)
         TEMPER_Y = int(self.TEMPER[line_pos_x])
-        self.red_line_label_y.setText(f'\tRSD Y: {RSD_Y}\tRLD Y: {RLD_Y}\tRLD/RSD Y: {RLD_RSD_Y}\tTEMPER Y: {TEMPER_Y}')
+        near_probe_title = self.columns_data[f"{self.device_type}"]["near_probe"]
+        far_probe_title = self.columns_data[f"{self.device_type}"]["far_probe"]
+        self.red_line_label_y.setText(f'\t{near_probe_title} Y: {NEAR_PROBE_Y}\t{far_probe_title} Y: {FAR_PROBE_Y}\t{far_probe_title}/{near_probe_title} Y: {FAR_ON_NEAR_PROBE_Y}\tTEMPER Y: {TEMPER_Y}')
 
     def ensure_red_line_created(self):
         if len(self.red_line) == 0:
@@ -225,8 +269,8 @@ class LASFileAnalyzer(QMainWindow):
         if self.axes is None:
             return
         
-        if len(self.smoothed_RSD) < new_value:
-            new_value = len(self.smoothed_RSD)
+        if len(self.smoothed_near_probe) < new_value:
+            new_value = len(self.smoothed_near_probe)
 
         if new_value < 0:
             new_value = 0
@@ -248,13 +292,14 @@ class LASFileAnalyzer(QMainWindow):
         self.clear_graphs()
         
         self.calc_data()
-
-        create_graph_on_canvas(self.axes[0], self.TIME, self.smoothed_RSD, "RSD_1")
-        create_graph_on_canvas(self.axes[1], self.TIME, self.smoothed_RLD, "RLD_1")
-        create_graph_on_canvas(self.axes[2], self.TIME, self.RLD_on_RSD, "RLD/RSD")
+        near_probe_title = self.columns_data[f"{self.device_type}"]["near_probe"]
+        far_probe_title = self.columns_data[f"{self.device_type}"]["far_probe"]
+        create_graph_on_canvas(self.axes[0], self.TIME, self.smoothed_near_probe, f"{near_probe_title}_1")
+        create_graph_on_canvas(self.axes[1], self.TIME, self.smoothed_far_probe, f"{far_probe_title}_1")
+        create_graph_on_canvas(self.axes[2], self.TIME, self.far_on_near_probe, f"{far_probe_title}/{near_probe_title}")
         create_graph_on_canvas(self.axes[3], self.TIME, self.TEMPER, "TEMPER")
 
-        self.x_red_line_spinbox.setMaximum(len(self.smoothed_RSD) - 1)
+        self.x_red_line_spinbox.setMaximum(len(self.smoothed_near_probe) - 1)
         self.x_red_line_spinbox.setValue(0)
         if self.move_x == 0:
             self.draw_red_line()
@@ -269,12 +314,14 @@ class LASFileAnalyzer(QMainWindow):
 
         self.crop_data()
 
-        create_graph_on_canvas(self.axes[0], self.TIME, self.smoothed_RSD, "RSD_1")
-        create_graph_on_canvas(self.axes[1], self.TIME, self.smoothed_RLD, "RLD_1")
-        create_graph_on_canvas(self.axes[2], self.TIME, self.RLD_on_RSD, "RLD/RSD")
+        near_probe_title = self.columns_data[f"{self.device_type}"]["near_probe"]
+        far_probe_title = self.columns_data[f"{self.device_type}"]["far_probe"]
+        create_graph_on_canvas(self.axes[0], self.TIME, self.smoothed_near_probe, f"{near_probe_title}_1")
+        create_graph_on_canvas(self.axes[1], self.TIME, self.smoothed_far_probe, f"{far_probe_title}_1")
+        create_graph_on_canvas(self.axes[2], self.TIME, self.far_on_near_probe, f"{far_probe_title}/{near_probe_title}")
         create_graph_on_canvas(self.axes[3], self.TIME, self.TEMPER, "TEMPER")
 
-        self.x_red_line_spinbox.setMaximum(len(self.smoothed_RSD) - 1)
+        self.x_red_line_spinbox.setMaximum(len(self.smoothed_near_probe) - 1)
         self.x_red_line_spinbox.setValue(0)
         if self.move_x == 0:
             self.draw_red_line()
@@ -294,8 +341,11 @@ class LASFileAnalyzer(QMainWindow):
 
         description = (serial_number, date, instrument_name)
 
-        # 2 tuples
-        data = self.smoothed_RSD, self.smoothed_RLD, self.RLD_on_RSD, self.TEMPER, self.TIME
+        data = self.smoothed_near_probe, self.smoothed_far_probe, self.far_on_near_probe, self.TEMPER, self.TIME
+
+        near_probe_title = self.columns_data[f"{self.device_type}"]["near_probe"]
+        far_probe_title = self.columns_data[f"{self.device_type}"]["far_probe"]
+        titles = near_probe_title, far_probe_title
 
         thresholds = self.las["THLDS"][0], self.las["THLDL"][0]
 
@@ -303,9 +353,9 @@ class LASFileAnalyzer(QMainWindow):
             int(self.size_entry.text()),
             bool(self.process_heat_checkbox.isChecked()),
             bool(self.process_cool_checkbox.isChecked()),
-            int(self.smooth_count_entry.text()),
             description,
             data,
+            titles,
             thresholds
         )
 
@@ -331,7 +381,7 @@ class LASFileAnalyzer(QMainWindow):
 
         heating_table, cooling_table = get_calc_for_tables(
             is_heating, is_cooling, window_size, T_max_index,
-            self.TEMPER, self.smoothed_RSD, self.smoothed_RLD, self.RLD_on_RSD
+            self.TEMPER, self.smoothed_near_probe, self.smoothed_far_probe, self.far_on_near_probe
         )
 
         if is_heating:

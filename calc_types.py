@@ -5,6 +5,10 @@ class TemperatureType(Enum):
     HEATING = 1
     COOLING = 2
 
+class DeviceType(Enum):
+    GAMMA = 1
+    NEUTRONIC = 2
+
 class ParametersForReporting():
     serial_number: str
     date: str
@@ -15,5 +19,7 @@ class ParametersForReporting():
     temp_min_left: float
     temp_max: float
     temp_min_right: float
-    RSD_threshold: float
-    RLD_threshold: float
+    near_probe_title: str
+    far_probe_title: str
+    near_probe_threshold: float
+    far_probe_threshold: float

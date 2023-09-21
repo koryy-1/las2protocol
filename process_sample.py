@@ -17,9 +17,9 @@ def get_calc_for_tables(
         window_size: int,
         T_max_index: int,
         TEMPER: np.ndarray,  
-        smoothed_RSD: np.ndarray, 
-        smoothed_RLD: np.ndarray, 
-        RLD_on_RSD: np.ndarray
+        smoothed_near_probe: np.ndarray, 
+        smoothed_far_probe: np.ndarray, 
+        far_on_near_probe: np.ndarray
         ):
     heating_table = None
     cooling_table = None
@@ -28,9 +28,9 @@ def get_calc_for_tables(
             TemperatureType.HEATING, 
             window_size, 
             TEMPER[:T_max_index], 
-            smoothed_RSD[:T_max_index], 
-            smoothed_RLD[:T_max_index], 
-            RLD_on_RSD[:T_max_index]
+            smoothed_near_probe[:T_max_index], 
+            smoothed_far_probe[:T_max_index], 
+            far_on_near_probe[:T_max_index]
             )
 
     # для охлада базовая темп = последний минимум
@@ -40,17 +40,17 @@ def get_calc_for_tables(
             TemperatureType.COOLING, 
             window_size, 
             TEMPER[T_max_index:], 
-            smoothed_RSD[T_max_index:], 
-            smoothed_RLD[T_max_index:], 
-            RLD_on_RSD[T_max_index:]
+            smoothed_near_probe[T_max_index:], 
+            smoothed_far_probe[T_max_index:], 
+            far_on_near_probe[T_max_index:]
             )
     
     return heating_table, cooling_table
 
-def calculate_smoothed_data(las, window_size, moving_average_count):
-    smoothed_RSD = moving_average(las["RSD"], window_size, moving_average_count)
-    smoothed_RLD = moving_average(las["RLD"], window_size, moving_average_count)
-    return smoothed_RSD, smoothed_RLD
+def calculate_smoothed_data(near_probe, far_probe, window_size, moving_average_count):
+    smoothed_near_probe = moving_average(near_probe, window_size, moving_average_count)
+    smoothed_far_probe = moving_average(far_probe, window_size, moving_average_count)
+    return smoothed_near_probe, smoothed_far_probe
 
 def get_conclusion(heating_table, cooling_table):
     if (
@@ -77,21 +77,23 @@ def close_active_docx_wnd(doc_name):
                 doc.Close()
                 break
 
-def save2doc(window_size, is_heating, is_cooling, moving_average_count, description, data, thresholds):
+def save2doc(window_size, is_heating, is_cooling, description, data, titles, thresholds):
     serial_number, date, instrument_name = description
 
-    RSD, RLD, RLD_ON_RSD, TEMPER, TIME = data
+    NEAR_PROBE, FAR_PROBE, FAR_ON_NEAR_PROBE, TEMPER, TIME = data
+
+    near_probe_title, far_probe_title = titles
 
     THLDS, THLDL = thresholds
 
-    ### creating plots #######################
+    ### creating graphs #######################
     # print('creating graphs...')
-    MF_RSD = create_graph(TIME, RSD, "RSD_1")
-    MF_RLD = create_graph(TIME, RLD, "RLD_1")
-    MF_RLD_ON_RSD = create_graph(TIME, RLD_ON_RSD, "RLD/RSD")
+    MF_NEAR_PROBE = create_graph(TIME, NEAR_PROBE, f"{near_probe_title}_1")
+    MF_FAR_PROBE = create_graph(TIME, FAR_PROBE, f"{far_probe_title}_1")
+    MF_FAR_ON_NEAR_PROBE = create_graph(TIME, FAR_ON_NEAR_PROBE, f"{far_probe_title}/{near_probe_title}")
     MF_MT = create_graph(TIME, TEMPER, "TEMPER")
 
-    MEM_FILES = (MF_RSD, MF_RLD, MF_RLD_ON_RSD, MF_MT)
+    MEM_FILES = (MF_NEAR_PROBE, MF_FAR_PROBE, MF_FAR_ON_NEAR_PROBE, MF_MT)
 
     # for check find_temperature_rise_point_right
     # print(find_temperature_rise_point_right(TEMPER, 1))
@@ -100,7 +102,7 @@ def save2doc(window_size, is_heating, is_cooling, moving_average_count, descript
     ### find point when temper drop down #######################
     # todo: отработать случай когда график темпы только падает
     # find_temperature_drop_point вычисляет точку в которой функция температуры начинает идти вниз
-    T_max_index, T_max = find_temperature_drop_point(TEMPER, 2)
+    T_max_index, _ = find_temperature_drop_point(TEMPER, 2)
     if not T_max_index:
         print('program not defined boundaries beetwen heating and cooling')
         print('may be temperature function only show heating')
@@ -117,9 +119,9 @@ def save2doc(window_size, is_heating, is_cooling, moving_average_count, descript
         window_size,
         T_max_index,
         TEMPER,  
-        RSD, 
-        RLD, 
-        RLD_ON_RSD
+        NEAR_PROBE, 
+        FAR_PROBE, 
+        FAR_ON_NEAR_PROBE
         )
 
 
@@ -138,14 +140,16 @@ def save2doc(window_size, is_heating, is_cooling, moving_average_count, descript
     params_for_reporting.temp_min_left = TEMPER[:T_max_index].min()
     params_for_reporting.temp_max = TEMPER.max()
     params_for_reporting.temp_min_right = TEMPER[T_max_index:].min()
-    params_for_reporting.RSD_threshold = THLDS
-    params_for_reporting.RLD_threshold = THLDL
+    params_for_reporting.near_probe_title = near_probe_title
+    params_for_reporting.far_probe_title = far_probe_title
+    params_for_reporting.near_probe_threshold = THLDS
+    params_for_reporting.far_probe_threshold = THLDL
 
 
     current_date = datetime.datetime.now().strftime('%d%m%y')
     output_filename = f"{serial_number}_{instrument_name}_{current_date}_by_program"
     # print(f'creating {output_filename}.docx...')
-    doc = make_docx(output_filename, params_for_reporting, MEM_FILES, picture_size=6.5)
+    doc = make_docx(params_for_reporting, MEM_FILES, picture_size=6.5)
 
     close_active_docx_wnd(f'{output_filename}.docx')
 

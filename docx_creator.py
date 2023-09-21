@@ -5,8 +5,8 @@ from docx.enum.text import WD_ALIGN_PARAGRAPH
 from calc_types import ParametersForReporting
 
 
-def make_docx(output_filename, params_for_reporting: ParametersForReporting, MEM_FILES, picture_size):
-    (MF_RSD, MF_RLD, MF_RLD_ON_RSD, MF_MT) = MEM_FILES
+def make_docx(params_for_reporting: ParametersForReporting, MEM_FILES, picture_size):
+    (MF_NEAR_PROBE, MF_FAR_PROBE, MF_FAR_ON_NEAR_PROBE, MF_MT) = MEM_FILES
 
     document = Document()
 
@@ -27,16 +27,16 @@ def make_docx(output_filename, params_for_reporting: ParametersForReporting, MEM
     document.add_paragraph(f'Прибор:                               №: {params_for_reporting.serial_number}', style='List Number')
     document.add_paragraph(f'Канал:                                   {params_for_reporting.instrument_name}', style='List Number')
     document.add_paragraph(f'Дата испытаний:                 {params_for_reporting.date}', style='List Number')
-    document.add_paragraph(f'Пороги: RSD - {int(params_for_reporting.RSD_threshold)} мВ, RLD - {int(params_for_reporting.RLD_threshold)} мВ. ', style='List Number')
+    document.add_paragraph(f'Пороги: {params_for_reporting.near_probe_title} - {int(params_for_reporting.near_probe_threshold)} мВ, {params_for_reporting.far_probe_title} - {int(params_for_reporting.far_probe_threshold)} мВ. ', style='List Number')
 
-    document.add_paragraph('RSD', style='List Number')
-    document.add_picture(MF_RSD, width=Inches(picture_size))
+    document.add_paragraph(params_for_reporting.near_probe_title, style='List Number')
+    document.add_picture(MF_NEAR_PROBE, width=Inches(picture_size))
 
-    document.add_paragraph('RLD', style='List Number')
-    document.add_picture(MF_RLD, width=Inches(picture_size))
+    document.add_paragraph(params_for_reporting.far_probe_title, style='List Number')
+    document.add_picture(MF_FAR_PROBE, width=Inches(picture_size))
 
-    document.add_paragraph('RLD/RSD', style='List Number')
-    document.add_picture(MF_RLD_ON_RSD, width=Inches(picture_size))
+    document.add_paragraph(f'{params_for_reporting.far_probe_title}/{params_for_reporting.near_probe_title}', style='List Number')
+    document.add_picture(MF_FAR_ON_NEAR_PROBE, width=Inches(picture_size))
 
     document.add_paragraph('TEMPER', style='List Number')
     document.add_picture(MF_MT, width=Inches(picture_size))
@@ -52,19 +52,19 @@ def make_docx(output_filename, params_for_reporting: ParametersForReporting, MEM
         hdr_cells[0].width = Inches(0.4)
         hdr_cells[1].text = 'Формула'
         hdr_cells[1].width = Inches(1.5)
-        hdr_cells[2].text = 'RSD'
-        hdr_cells[3].text = 'RLD'
-        hdr_cells[4].text = 'RLD/RSD'
+        hdr_cells[2].text = params_for_reporting.near_probe_title
+        hdr_cells[3].text = params_for_reporting.far_probe_title
+        hdr_cells[4].text = f'{params_for_reporting.far_probe_title}/{params_for_reporting.near_probe_title}'
         # print(records)
-        for num, formula, RSD, RLD, RLD_ON_RSD in params_for_reporting.heating_table:
+        for num, formula, NEAR_PROBE, FAR_PROBE, FAR_ON_NEAR_PROBE in params_for_reporting.heating_table:
             row_cells = cooling_table.add_row().cells
             row_cells[0].text = str(num)
             row_cells[0].width = Inches(0.4)
             row_cells[1].text = formula
             row_cells[1].width = Inches(1.5)
-            row_cells[2].text = str(RSD)
-            row_cells[3].text = str(RLD)
-            row_cells[4].text = str(RLD_ON_RSD)
+            row_cells[2].text = str(NEAR_PROBE)
+            row_cells[3].text = str(FAR_PROBE)
+            row_cells[4].text = str(FAR_ON_NEAR_PROBE)
 
         cooling_table.style = 'Table Grid'
 
@@ -79,19 +79,19 @@ def make_docx(output_filename, params_for_reporting: ParametersForReporting, MEM
         hdr_cells[0].width = Inches(0.4)
         hdr_cells[1].text = 'Формула'
         hdr_cells[1].width = Inches(1.5)
-        hdr_cells[2].text = 'RSD'
-        hdr_cells[3].text = 'RLD'
-        hdr_cells[4].text = 'RLD/RSD'
+        hdr_cells[2].text = params_for_reporting.near_probe_title
+        hdr_cells[3].text = params_for_reporting.far_probe_title
+        hdr_cells[4].text = f'{params_for_reporting.far_probe_title}/{params_for_reporting.near_probe_title}'
         # print(records)
-        for num, formula, RSD, RLD, RLD_ON_RSD in params_for_reporting.cooling_table:
+        for num, formula, NEAR_PROBE, FAR_PROBE, FAR_ON_NEAR_PROBE in params_for_reporting.cooling_table:
             row_cells = cooling_table.add_row().cells
             row_cells[0].text = str(num)
             row_cells[0].width = Inches(0.4)
             row_cells[1].text = formula
             row_cells[1].width = Inches(1.5)
-            row_cells[2].text = str(RSD)
-            row_cells[3].text = str(RLD)
-            row_cells[4].text = str(RLD_ON_RSD)
+            row_cells[2].text = str(NEAR_PROBE)
+            row_cells[3].text = str(FAR_PROBE)
+            row_cells[4].text = str(FAR_ON_NEAR_PROBE)
 
         cooling_table.style = 'Table Grid'
     
@@ -103,35 +103,15 @@ def make_docx(output_filename, params_for_reporting: ParametersForReporting, MEM
     conc_p = document.add_paragraph(style='List Number')
     conc_p.add_run('Выводы').bold = True
     document.add_paragraph(
-        f'Температурный уход сигналов RSD,  RLD  и  RLD/RSD  в диапазоне температур {temp_ranges} {params_for_reporting.conclusion} 5%.'
+        f'Температурный уход сигналов {params_for_reporting.near_probe_title},  {params_for_reporting.far_probe_title}  и  {params_for_reporting.far_probe_title}/{params_for_reporting.near_probe_title}  в диапазоне температур {temp_ranges} {params_for_reporting.conclusion} 5%.'
     )
 
     document.add_paragraph()
 
-    document.add_paragraph(
-        'Начальник КО-1                                                                    А.Н. Петров'
-    )
-    document.add_paragraph(
-        'Составил:                                                                               А.Б. Овчаренко'
-    )
+    document.add_paragraph('Калибровщик:')
+    document.add_paragraph('Представитель ОТК:')
 
     return document
-
-    # try:
-    #     document.save(f'{output_filename}.docx')
-    #     return True
-    # except:
-    #     return False
-    
-    # count = ''
-    # for i in range(100):
-    #     try:
-    #         document.save(f'{output_filename}{count}.docx')
-    #         return True
-    #     except:
-    #         count = f' ({i+1})'
-
-    # return False
 
 
 def get_temp_ranges(params_for_reporting: ParametersForReporting):

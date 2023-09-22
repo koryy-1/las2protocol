@@ -47,11 +47,6 @@ def get_calc_for_tables(
     
     return heating_table, cooling_table
 
-def calculate_smoothed_data(near_probe, far_probe, window_size, moving_average_count):
-    smoothed_near_probe = moving_average(near_probe, window_size, moving_average_count)
-    smoothed_far_probe = moving_average(far_probe, window_size, moving_average_count)
-    return smoothed_near_probe, smoothed_far_probe
-
 def get_conclusion(heating_table, cooling_table):
     if (
         (heating_table and exceeds_threshold(heating_table))

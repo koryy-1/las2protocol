@@ -27,7 +27,7 @@ def make_docx(params_for_reporting: ParametersForReporting, MEM_FILES, picture_s
     document.add_paragraph(f'Прибор:                               №: {params_for_reporting.serial_number}', style='List Number')
     document.add_paragraph(f'Канал:                                   {params_for_reporting.instrument_name}', style='List Number')
     document.add_paragraph(f'Дата испытаний:                 {params_for_reporting.date}', style='List Number')
-    document.add_paragraph(f'Пороги: {params_for_reporting.near_probe_title} - {int(params_for_reporting.near_probe_threshold)} мВ, {params_for_reporting.far_probe_title} - {int(params_for_reporting.far_probe_threshold)} мВ. ', style='List Number')
+    document.add_paragraph(f'Пороги: {params_for_reporting.near_probe_title} - {params_for_reporting.near_probe_threshold} мВ, {params_for_reporting.far_probe_title} - {params_for_reporting.far_probe_threshold} мВ. ', style='List Number')
 
     document.add_paragraph(params_for_reporting.near_probe_title, style='List Number')
     document.add_picture(MF_NEAR_PROBE, width=Inches(picture_size))

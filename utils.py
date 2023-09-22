@@ -49,23 +49,29 @@ def find_temperature_rise_point_right(temp_data, tolerance_degrees):
 
 
 def find_min_variance_interval(data, interval_length=60):
-    min_variance = float('inf')  # Начальное значение минимальной дисперсии
-    min_variance_interval = []  # Инициализация интервала с минимальной дисперсией
-    min_variance_index = 0  # Индекс начала интервала с минимальной дисперсией
+    # min_variance = float('inf')  # Начальное значение минимальной дисперсии
+    # min_variance_interval = []  # Инициализация интервала с минимальной дисперсией
+    # min_variance_index = 0  # Индекс начала интервала с минимальной дисперсией
+    variance_arr = []
 
     for i in range(0, len(data) - interval_length + 1, interval_length):
         interval = data[i:i + interval_length]  # Выбираем интервал длиной 60 отсчетов
         variance = np.var(interval)  # Вычисляем дисперсию интервала
+        variance_arr.append(variance)
 
-        # Если текущая дисперсия меньше минимальной, обновляем значения
-        if variance < min_variance:
-            min_variance = variance
-            min_variance_interval = interval
-            min_variance_index = i
+        # # Если текущая дисперсия меньше минимальной, обновляем значения
+        # if variance < min_variance:
+        #     min_variance = variance
+        #     min_variance_interval = interval
+        #     min_variance_index = i
 
-    return min_variance_interval, min_variance, min_variance_index
+    return variance_arr
 
-def moving_average(data, window_size, count):
+def smoothing_function(data, window_size, count):
+    
+
+
+
     smoothed_data = data
     for _ in range(count):
         smoothed_data = pd.Series(smoothed_data).rolling(window=window_size).mean().iloc[window_size-1:].values

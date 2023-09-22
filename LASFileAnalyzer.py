@@ -8,7 +8,7 @@ import lasio
 
 from calc_types import DeviceType
 
-from process_sample import calculate_smoothed_data, get_calc_for_tables, save2doc
+from process_sample import get_calc_for_tables, save2doc
 
 from plot_creator import create_graph_on_canvas
 from utils import find_temperature_drop_point, moving_average
@@ -138,13 +138,19 @@ class LASFileAnalyzer(QMainWindow):
         self.columns_data = {
             f'{DeviceType.GAMMA}': {
                 'near_probe': 'RSD',
-                'far_probe': 'RLD'
+                'far_probe': 'RLD',
+                'near_probe_threshold': '\t',
+                'far_probe_threshold': '\t'
             },
             f'{DeviceType.NEUTRONIC}': {
                 'near_probe': 'NTNC',
-                'far_probe': 'FTNC'
+                'far_probe': 'FTNC',
+                'near_probe_threshold': '\t',
+                'far_probe_threshold': '\t'
             },
         }
+        self.near_probe_title = None
+        self.far_probe_title = None
 
         self.axes = []
 
@@ -181,13 +187,22 @@ class LASFileAnalyzer(QMainWindow):
         options |= QFileDialog.ReadOnly
         file_path, _ = QFileDialog.getOpenFileName(self, "Открыть .las файл", "", "LAS Files (*.las)", options=options)
         if file_path:
-            # Здесь вы можете добавить код для обработки выбранного .las файла
             self.file_path_label.setText(file_path.split("/")[-1])
             self.las = lasio.read(file_path, encoding="cp1251")
 
             self.define_device_type()
+
+            self.define_probe_titles()
             
             self.plot_graphs()
+
+    def define_probe_titles(self):
+        self.near_probe_title = self.columns_data[f"{self.device_type}"]["near_probe"]
+        self.far_probe_title = self.columns_data[f"{self.device_type}"]["far_probe"]
+
+        self.columns_data[f"{self.device_type}"]["near_probe_threshold"] = int(self.las['THLDS'][0])
+        self.columns_data[f"{self.device_type}"]["far_probe_threshold"] = int(self.las['THLDL'][0])
+
 
     def define_device_type(self):
         if "RSD" in self.las.keys():
@@ -219,15 +234,13 @@ class LASFileAnalyzer(QMainWindow):
             ax.clear()
 
     def calc_data(self):
-        near_probe_title = self.columns_data[f"{self.device_type}"]["near_probe"]
-        far_probe_title = self.columns_data[f"{self.device_type}"]["far_probe"]
         self.smoothed_near_probe = moving_average(
-            self.las[near_probe_title], 
+            self.las[self.near_probe_title], 
             int(self.size_entry.text()), 
             int(self.smooth_count_entry.text())
         )
         self.smoothed_far_probe = moving_average(
-            self.las[far_probe_title], 
+            self.las[self.far_probe_title], 
             int(self.size_entry.text()), 
             int(self.smooth_count_entry.text())
         )
@@ -250,9 +263,7 @@ class LASFileAnalyzer(QMainWindow):
         FAR_PROBE_Y = int(np.round(self.smoothed_far_probe[line_pos_x]))
         FAR_ON_NEAR_PROBE_Y = np.round(self.far_on_near_probe[line_pos_x], 3)
         TEMPER_Y = int(self.TEMPER[line_pos_x])
-        near_probe_title = self.columns_data[f"{self.device_type}"]["near_probe"]
-        far_probe_title = self.columns_data[f"{self.device_type}"]["far_probe"]
-        self.red_line_label_y.setText(f'\t{near_probe_title} Y: {NEAR_PROBE_Y}\t{far_probe_title} Y: {FAR_PROBE_Y}\t{far_probe_title}/{near_probe_title} Y: {FAR_ON_NEAR_PROBE_Y}\tTEMPER Y: {TEMPER_Y}')
+        self.red_line_label_y.setText(f'\t{self.near_probe_title} Y: {NEAR_PROBE_Y}\t{self.far_probe_title} Y: {FAR_PROBE_Y}\t{self.far_probe_title}/{self.near_probe_title} Y: {FAR_ON_NEAR_PROBE_Y}\tTEMPER Y: {TEMPER_Y}')
 
     def ensure_red_line_created(self):
         if len(self.red_line) == 0:
@@ -292,11 +303,9 @@ class LASFileAnalyzer(QMainWindow):
         self.clear_graphs()
         
         self.calc_data()
-        near_probe_title = self.columns_data[f"{self.device_type}"]["near_probe"]
-        far_probe_title = self.columns_data[f"{self.device_type}"]["far_probe"]
-        create_graph_on_canvas(self.axes[0], self.TIME, self.smoothed_near_probe, f"{near_probe_title}_1")
-        create_graph_on_canvas(self.axes[1], self.TIME, self.smoothed_far_probe, f"{far_probe_title}_1")
-        create_graph_on_canvas(self.axes[2], self.TIME, self.far_on_near_probe, f"{far_probe_title}/{near_probe_title}")
+        create_graph_on_canvas(self.axes[0], self.TIME, self.smoothed_near_probe, f"{self.near_probe_title}_1")
+        create_graph_on_canvas(self.axes[1], self.TIME, self.smoothed_far_probe, f"{self.far_probe_title}_1")
+        create_graph_on_canvas(self.axes[2], self.TIME, self.far_on_near_probe, f"{self.far_probe_title}/{self.near_probe_title}")
         create_graph_on_canvas(self.axes[3], self.TIME, self.TEMPER, "TEMPER")
 
         self.x_red_line_spinbox.setMaximum(len(self.smoothed_near_probe) - 1)
@@ -314,11 +323,9 @@ class LASFileAnalyzer(QMainWindow):
 
         self.crop_data()
 
-        near_probe_title = self.columns_data[f"{self.device_type}"]["near_probe"]
-        far_probe_title = self.columns_data[f"{self.device_type}"]["far_probe"]
-        create_graph_on_canvas(self.axes[0], self.TIME, self.smoothed_near_probe, f"{near_probe_title}_1")
-        create_graph_on_canvas(self.axes[1], self.TIME, self.smoothed_far_probe, f"{far_probe_title}_1")
-        create_graph_on_canvas(self.axes[2], self.TIME, self.far_on_near_probe, f"{far_probe_title}/{near_probe_title}")
+        create_graph_on_canvas(self.axes[0], self.TIME, self.smoothed_near_probe, f"{self.near_probe_title}_1")
+        create_graph_on_canvas(self.axes[1], self.TIME, self.smoothed_far_probe, f"{self.far_probe_title}_1")
+        create_graph_on_canvas(self.axes[2], self.TIME, self.far_on_near_probe, f"{self.far_probe_title}/{self.near_probe_title}")
         create_graph_on_canvas(self.axes[3], self.TIME, self.TEMPER, "TEMPER")
 
         self.x_red_line_spinbox.setMaximum(len(self.smoothed_near_probe) - 1)
@@ -343,11 +350,12 @@ class LASFileAnalyzer(QMainWindow):
 
         data = self.smoothed_near_probe, self.smoothed_far_probe, self.far_on_near_probe, self.TEMPER, self.TIME
 
-        near_probe_title = self.columns_data[f"{self.device_type}"]["near_probe"]
-        far_probe_title = self.columns_data[f"{self.device_type}"]["far_probe"]
-        titles = near_probe_title, far_probe_title
+        titles = self.near_probe_title, self.far_probe_title
 
-        thresholds = self.las["THLDS"][0], self.las["THLDL"][0]
+        thresholds = (
+            self.columns_data[f"{self.device_type}"]["near_probe_threshold"],
+            self.columns_data[f"{self.device_type}"]["far_probe_threshold"]
+        )
 
         success = save2doc(
             int(self.size_entry.text()),

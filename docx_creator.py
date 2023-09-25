@@ -108,7 +108,7 @@ def make_docx(params_for_reporting: ParametersForReporting, MEM_FILES, picture_s
 
     document.add_paragraph()
 
-    document.add_paragraph('Калибровщик:')
+    document.add_paragraph('Термоиспытания провел:')
     document.add_paragraph('Представитель ОТК:')
 
     return document

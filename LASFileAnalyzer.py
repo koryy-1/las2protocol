@@ -11,7 +11,7 @@ from calc_types import DeviceType
 from process_sample import get_calc_for_tables, save2doc
 
 from plot_creator import create_graph_on_canvas
-from utils import find_temperature_drop_point, moving_average
+from utils import find_temperature_drop_point, smoothing_function
 
 class LASFileAnalyzer(QMainWindow):
     def __init__(self):
@@ -145,8 +145,8 @@ class LASFileAnalyzer(QMainWindow):
             f'{DeviceType.NEUTRONIC}': {
                 'near_probe': 'NTNC',
                 'far_probe': 'FTNC',
-                'near_probe_threshold': '\t',
-                'far_probe_threshold': '\t'
+                'near_probe_threshold': '\t\t',
+                'far_probe_threshold': '\t\t'
             },
         }
         self.near_probe_title = None
@@ -200,8 +200,9 @@ class LASFileAnalyzer(QMainWindow):
         self.near_probe_title = self.columns_data[f"{self.device_type}"]["near_probe"]
         self.far_probe_title = self.columns_data[f"{self.device_type}"]["far_probe"]
 
-        self.columns_data[f"{self.device_type}"]["near_probe_threshold"] = int(self.las['THLDS'][0])
-        self.columns_data[f"{self.device_type}"]["far_probe_threshold"] = int(self.las['THLDL'][0])
+        if self.device_type == DeviceType.GAMMA:
+            self.columns_data[f"{self.device_type}"]["near_probe_threshold"] = int(self.las['THLDS'][0])
+            self.columns_data[f"{self.device_type}"]["far_probe_threshold"] = int(self.las['THLDL'][0])
 
 
     def define_device_type(self):
@@ -234,12 +235,12 @@ class LASFileAnalyzer(QMainWindow):
             ax.clear()
 
     def calc_data(self):
-        self.smoothed_near_probe = moving_average(
+        self.smoothed_near_probe = smoothing_function(
             self.las[self.near_probe_title], 
             int(self.size_entry.text()), 
             int(self.smooth_count_entry.text())
         )
-        self.smoothed_far_probe = moving_average(
+        self.smoothed_far_probe = smoothing_function(
             self.las[self.far_probe_title], 
             int(self.size_entry.text()), 
             int(self.smooth_count_entry.text())

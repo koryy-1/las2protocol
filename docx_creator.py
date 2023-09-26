@@ -62,6 +62,10 @@ def make_docx(params_for_reporting: ParametersForReporting, MEM_FILES, picture_s
             row_cells[0].width = Inches(0.4)
             row_cells[1].text = formula
             row_cells[1].width = Inches(1.5)
+            if num >= 6:
+                row_cells[2].bold = True
+                row_cells[3].bold = True
+                row_cells[4].bold = True
             row_cells[2].text = str(NEAR_PROBE)
             row_cells[3].text = str(FAR_PROBE)
             row_cells[4].text = str(FAR_ON_NEAR_PROBE)
@@ -89,6 +93,11 @@ def make_docx(params_for_reporting: ParametersForReporting, MEM_FILES, picture_s
             row_cells[0].width = Inches(0.4)
             row_cells[1].text = formula
             row_cells[1].width = Inches(1.5)
+            if num >= 6:
+                row_cells[2].bold = True
+                row_cells[3].bold = True
+                # row_cells[4].bold = True
+                row_cells[4].paragraphs[0].add_run(str(FAR_ON_NEAR_PROBE)).bold = True
             row_cells[2].text = str(NEAR_PROBE)
             row_cells[3].text = str(FAR_PROBE)
             row_cells[4].text = str(FAR_ON_NEAR_PROBE)
@@ -109,7 +118,6 @@ def make_docx(params_for_reporting: ParametersForReporting, MEM_FILES, picture_s
     document.add_paragraph()
 
     document.add_paragraph('Термоиспытания провел:')
-    document.add_paragraph('Представитель ОТК:')
 
     return document
 

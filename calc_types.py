@@ -1,5 +1,6 @@
 from enum import Enum
 from typing import Any, Literal
+import numpy as np
 
 class TemperatureType(Enum):
     HEATING = 1
@@ -8,6 +9,29 @@ class TemperatureType(Enum):
 class DeviceType(Enum):
     GAMMA = 1
     NEUTRONIC = 2
+
+class ColumnDataGamma(Enum):
+    NEAR_PROBE = 'RSD'
+    FAR_PROBE = 'RLD'
+    TEMPER = 'T_GGKP'
+    DEFAULT_TEMPER = 'MT'
+    NEAR_PROBE_THRESHOLD = 'THLDS'
+    FAR_PROBE_THRESHOLD = 'THLDL'
+
+class ColumnDataNeutronic(Enum):
+    NEAR_PROBE = 'NTNC'
+    FAR_PROBE = 'FTNC'
+    TEMPER = 'T_NNKT'
+    DEFAULT_TEMPER = 'MT'
+    # NEAR_PROBE_THRESHOLD = ''
+    # FAR_PROBE_THRESHOLD = ''
+
+class GraphData():
+    near_probe: np.ndarray = []
+    far_probe: np.ndarray = []
+    far_on_near_probe: np.ndarray = []
+    temper: np.ndarray = []
+    time: np.ndarray = []
 
 class ParametersForReporting():
     serial_number: str

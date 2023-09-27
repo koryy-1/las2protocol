@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import lasio
 
-from calc_types import DeviceType
+from calc_types import DeviceType, GraphData, ColumnDataGamma, ColumnDataNeutronic
 
 from process_sample import get_calc_for_tables, save2doc
 
@@ -77,11 +77,7 @@ class LASFileAnalyzer(QMainWindow):
         self.cut_button.clicked.connect(self.crop_graphs)
 
         # ввод со стрелками
-        self.smoothed_near_probe = []
-        self.smoothed_far_probe = []
-        self.far_on_near_probe = []
-        self.TEMPER = []
-        self.TIME = []
+        
         self.red_line_label_x = QLabel("X: ")
         self.red_line_label_y = QLabel("")
         self.x_red_line_spinbox = QSpinBox(self)
@@ -135,22 +131,15 @@ class LASFileAnalyzer(QMainWindow):
 
         self.device_type = DeviceType.GAMMA
 
-        self.columns_data = {
-            f'{DeviceType.GAMMA}': {
-                'near_probe': 'RSD',
-                'far_probe': 'RLD',
-                'near_probe_threshold': '\t',
-                'far_probe_threshold': '\t'
-            },
-            f'{DeviceType.NEUTRONIC}': {
-                'near_probe': 'NTNC',
-                'far_probe': 'FTNC',
-                'near_probe_threshold': '\t\t',
-                'far_probe_threshold': '\t\t'
-            },
-        }
+        self.gamma_graph_data: GraphData = None
+        self.neutronic_graph_data: GraphData = None
+
         self.near_probe_title = None
         self.far_probe_title = None
+
+        self.is_realdepth = False
+        self.is_gamma = False
+        self.is_neutronic = False
 
         self.axes = []
 
@@ -192,24 +181,39 @@ class LASFileAnalyzer(QMainWindow):
 
             self.define_device_type()
 
-            self.define_probe_titles()
+            self.get_data_from_las()
             
             self.plot_graphs()
 
-    def define_probe_titles(self):
-        self.near_probe_title = self.columns_data[f"{self.device_type}"]["near_probe"]
-        self.far_probe_title = self.columns_data[f"{self.device_type}"]["far_probe"]
+    def get_data_from_las(self):
+        self.gamma_graph_data = self.get_data(ColumnDataGamma)
+        self.neutronic_graph_data = self.get_data(ColumnDataNeutronic)
 
-        if self.device_type == DeviceType.GAMMA:
-            self.columns_data[f"{self.device_type}"]["near_probe_threshold"] = int(self.las['THLDS'][0])
-            self.columns_data[f"{self.device_type}"]["far_probe_threshold"] = int(self.las['THLDL'][0])
+    def get_data(self, column_data) -> GraphData:
+        if not self.is_gamma:
+            return None
+        
+        graph_data = GraphData()
 
+        graph_data.near_probe = self.las[column_data.NEAR_PROBE]
+        graph_data.far_probe = self.las[column_data.FAR_PROBE]
+        # graph_data.far_on_near_probe = np.divide(graph_data.far_probe, graph_data.near_probe)
+        graph_data.time = self.las["TIME"]
+        if self.is_gamma and self.is_neutronic:
+            graph_data.temper = self.las[column_data.TEMPER]
+        else:
+            graph_data.temper = self.las[column_data.DEFAULT_TEMPER]
+
+        return graph_data
 
     def define_device_type(self):
-        if "RSD" in self.las.keys():
-            self.device_type_gamma_radio_btn.setChecked(True)
-        elif "NTNC" in self.las.keys():
-            self.device_type_neutronic_radio_btn.setChecked(True)
+        self.is_gamma = "RSD" in self.las.keys()
+        # if "RSD" in self.las.keys():
+            # self.device_type_gamma_radio_btn.setChecked(True)
+
+        self.is_neutronic = "NTNC" in self.las.keys()
+        # if "NTNC" in self.las.keys():
+            # self.device_type_neutronic_radio_btn.setChecked(True)
 
     def set_device_type_gamma(self):
         self.device_type = DeviceType.GAMMA
@@ -235,21 +239,39 @@ class LASFileAnalyzer(QMainWindow):
             ax.clear()
 
     def calc_data(self):
-        self.smoothed_near_probe = smoothing_function(
-            self.las[self.near_probe_title], 
-            int(self.size_entry.text()), 
-            int(self.smooth_count_entry.text())
-        )
-        self.smoothed_far_probe = smoothing_function(
-            self.las[self.far_probe_title], 
-            int(self.size_entry.text()), 
-            int(self.smooth_count_entry.text())
-        )
-        self.far_on_near_probe = np.divide(self.smoothed_far_probe, self.smoothed_near_probe)
-        delta_len = len(self.las["MT"]) - len(self.smoothed_near_probe)
-        # padded_smoothed_near_probe = np.pad(smoothed_near_probe, (delta_len, 0), mode='constant')
-        self.TEMPER = self.las["MT"][delta_len:]
-        self.TIME = self.las["TIME"][delta_len:]
+        if self.is_gamma:
+            self.smoothed_near_probe = smoothing_function(
+                self.las[self.near_probe_title], 
+                int(self.size_entry.text()), 
+                int(self.smooth_count_entry.text())
+            )
+            self.smoothed_far_probe = smoothing_function(
+                self.las[self.far_probe_title], 
+                int(self.size_entry.text()), 
+                int(self.smooth_count_entry.text())
+            )
+            self.far_on_near_probe = np.divide(self.smoothed_far_probe, self.smoothed_near_probe)
+            delta_len = len(self.las["TIME"]) - len(self.smoothed_near_probe)
+            # padded_smoothed_near_probe = np.pad(smoothed_near_probe, (delta_len, 0), mode='constant')
+            self.TIME = self.las["TIME"][delta_len:]
+        
+        if self.is_neutronic:
+            self.smoothed_near_probe = smoothing_function(
+                self.las[self.near_probe_title], 
+                int(self.size_entry.text()), 
+                int(self.smooth_count_entry.text())
+            )
+            self.smoothed_far_probe = smoothing_function(
+                self.las[self.far_probe_title], 
+                int(self.size_entry.text()), 
+                int(self.smooth_count_entry.text())
+            )
+            self.far_on_near_probe = np.divide(self.smoothed_far_probe, self.smoothed_near_probe)
+            delta_len = len(self.las["TIME"]) - len(self.smoothed_near_probe)
+            # padded_smoothed_near_probe = np.pad(smoothed_near_probe, (delta_len, 0), mode='constant')
+            
+            self.TIME = self.las["TIME"][delta_len:]
+
 
     def crop_data(self):
         self.smoothed_near_probe = self.smoothed_near_probe[self.move_x:]
@@ -338,6 +360,22 @@ class LASFileAnalyzer(QMainWindow):
         
     
     def save_to_docx(self):
+        if not self.is_realdepth:
+            titles = self.near_probe_title, self.far_probe_title
+            probe_data = (self.smoothed_near_probe, self.smoothed_far_probe, self.far_on_near_probe)
+            self.save_to_separate_docx(probe_data, titles)
+            return
+
+        # Если данные получены из realdepth, сохраняем в 2 отдельных файла
+        gamma_titles = self.near_probe_title, self.far_probe_title
+        neutronic_titles = self.near_probe_title, self.far_probe_title
+        gamma_probe_data = (self.smoothed_near_probe, self.smoothed_far_probe, self.far_on_near_probe)
+        neutronic_probe_data = (self.smoothed_near_probe, self.smoothed_far_probe, self.far_on_near_probe)
+
+        self.save_to_separate_docx(gamma_probe_data, gamma_titles)
+        self.save_to_separate_docx(neutronic_probe_data, neutronic_titles)
+    
+    def save_to_separate_docx(self, probe_data, titles):
         if self.las is None:
             return
 
@@ -349,9 +387,7 @@ class LASFileAnalyzer(QMainWindow):
 
         description = (serial_number, date, instrument_name)
 
-        data = self.smoothed_near_probe, self.smoothed_far_probe, self.far_on_near_probe, self.TEMPER, self.TIME
-
-        titles = self.near_probe_title, self.far_probe_title
+        data = probe_data, self.TEMPER, self.TIME
 
         thresholds = (
             self.columns_data[f"{self.device_type}"]["near_probe_threshold"],

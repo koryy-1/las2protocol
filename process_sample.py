@@ -75,7 +75,7 @@ def close_active_docx_wnd(doc_name):
 def save2doc(window_size, is_heating, is_cooling, description, data, titles, thresholds):
     serial_number, date, instrument_name = description
 
-    NEAR_PROBE, FAR_PROBE, FAR_ON_NEAR_PROBE, TEMPER, TIME = data
+    (NEAR_PROBE, FAR_PROBE, FAR_ON_NEAR_PROBE), TEMPER, TIME = data
 
     near_probe_title, far_probe_title = titles
 

@@ -10,7 +10,7 @@ class DeviceType(Enum):
     GAMMA = 1
     NEUTRONIC = 2
 
-class ColumnDataGamma(Enum):
+class ColumnDataGamma():
     NEAR_PROBE = 'RSD'
     FAR_PROBE = 'RLD'
     TEMPER = 'T_GGKP'
@@ -18,13 +18,13 @@ class ColumnDataGamma(Enum):
     NEAR_PROBE_THRESHOLD = 'THLDS'
     FAR_PROBE_THRESHOLD = 'THLDL'
 
-class ColumnDataNeutronic(Enum):
+class ColumnDataNeutronic():
     NEAR_PROBE = 'NTNC'
     FAR_PROBE = 'FTNC'
     TEMPER = 'T_NNKT'
     DEFAULT_TEMPER = 'MT'
-    # NEAR_PROBE_THRESHOLD = ''
-    # FAR_PROBE_THRESHOLD = ''
+    NEAR_PROBE_THRESHOLD = ''
+    FAR_PROBE_THRESHOLD = ''
 
 class GraphData():
     near_probe: np.ndarray = []
@@ -32,6 +32,8 @@ class GraphData():
     far_on_near_probe: np.ndarray = []
     temper: np.ndarray = []
     time: np.ndarray = []
+    near_probe_threshold: str
+    far_probe_threshold: str
 
 class ParametersForReporting():
     serial_number: str

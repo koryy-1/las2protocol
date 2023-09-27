@@ -4,7 +4,7 @@ import datetime
 
 from calculations import *
 
-from calc_types import TemperatureType, ParametersForReporting
+from calc_types import GraphData, TemperatureType, ParametersForReporting
 
 from docx_creator import make_docx
 
@@ -72,21 +72,19 @@ def close_active_docx_wnd(doc_name):
                 doc.Close()
                 break
 
-def save2doc(window_size, is_heating, is_cooling, description, data, titles, thresholds):
+def save2doc(window_size, is_heating, is_cooling, description, data: GraphData, titles, thresholds):
     serial_number, date, instrument_name = description
-
-    (NEAR_PROBE, FAR_PROBE, FAR_ON_NEAR_PROBE), TEMPER, TIME = data
 
     near_probe_title, far_probe_title = titles
 
-    THLDS, THLDL = thresholds
+    near_probe_threshold, far_probe_threshold = thresholds
 
     ### creating graphs #######################
     # print('creating graphs...')
-    MF_NEAR_PROBE = create_graph(TIME, NEAR_PROBE, f"{near_probe_title}_1")
-    MF_FAR_PROBE = create_graph(TIME, FAR_PROBE, f"{far_probe_title}_1")
-    MF_FAR_ON_NEAR_PROBE = create_graph(TIME, FAR_ON_NEAR_PROBE, f"{far_probe_title}/{near_probe_title}")
-    MF_MT = create_graph(TIME, TEMPER, "TEMPER")
+    MF_NEAR_PROBE = create_graph(data.time, data.near_probe, f"{near_probe_title}_1")
+    MF_FAR_PROBE = create_graph(data.time, data.far_probe, f"{far_probe_title}_1")
+    MF_FAR_ON_NEAR_PROBE = create_graph(data.time, data.far_on_near_probe, f"{far_probe_title}/{near_probe_title}")
+    MF_MT = create_graph(data.time, data.temper, "TEMPER")
 
     MEM_FILES = (MF_NEAR_PROBE, MF_FAR_PROBE, MF_FAR_ON_NEAR_PROBE, MF_MT)
 
@@ -97,7 +95,7 @@ def save2doc(window_size, is_heating, is_cooling, description, data, titles, thr
     ### find point when temper drop down #######################
     # todo: отработать случай когда график темпы только падает
     # find_temperature_drop_point вычисляет точку в которой функция температуры начинает идти вниз
-    T_max_index, _ = find_temperature_drop_point(TEMPER, 2)
+    T_max_index, _ = find_temperature_drop_point(data.temper, 2)
     if not T_max_index:
         print('program not defined boundaries beetwen heating and cooling')
         print('may be temperature function only show heating')
@@ -113,10 +111,10 @@ def save2doc(window_size, is_heating, is_cooling, description, data, titles, thr
         is_cooling,
         window_size,
         T_max_index,
-        TEMPER,  
-        NEAR_PROBE, 
-        FAR_PROBE, 
-        FAR_ON_NEAR_PROBE
+        data.temper,  
+        data.near_probe, 
+        data.far_probe, 
+        data.far_on_near_probe
         )
 
 
@@ -132,13 +130,13 @@ def save2doc(window_size, is_heating, is_cooling, description, data, titles, thr
     params_for_reporting.heating_table = heating_table
     params_for_reporting.cooling_table = cooling_table
     params_for_reporting.conclusion = conclusion
-    params_for_reporting.temp_min_left = TEMPER[:T_max_index].min()
-    params_for_reporting.temp_max = TEMPER.max()
-    params_for_reporting.temp_min_right = TEMPER[T_max_index:].min()
+    params_for_reporting.temp_min_left = data.temper[:T_max_index].min()
+    params_for_reporting.temp_max = data.temper.max()
+    params_for_reporting.temp_min_right = data.temper[T_max_index:].min()
     params_for_reporting.near_probe_title = near_probe_title
     params_for_reporting.far_probe_title = far_probe_title
-    params_for_reporting.near_probe_threshold = THLDS
-    params_for_reporting.far_probe_threshold = THLDL
+    params_for_reporting.near_probe_threshold = near_probe_threshold
+    params_for_reporting.far_probe_threshold = far_probe_threshold
 
 
     current_date = datetime.datetime.now().strftime('%d%m%y')

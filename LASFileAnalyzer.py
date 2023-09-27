@@ -134,16 +134,14 @@ class LASFileAnalyzer(QMainWindow):
         self.gamma_graph_data: GraphData = None
         self.neutronic_graph_data: GraphData = None
 
-        self.near_probe_title = None
-        self.far_probe_title = None
-
-        self.is_realdepth = False
         self.is_gamma = False
         self.is_neutronic = False
 
         self.axes = []
+        self.col_num = []
 
         # Создание красной вертикальной линии
+        self.spinbox_max_value = 2147483647
         self.red_line = []
         self.move_x = 0
 
@@ -181,30 +179,7 @@ class LASFileAnalyzer(QMainWindow):
 
             self.define_device_type()
 
-            self.get_data_from_las()
-            
             self.plot_graphs()
-
-    def get_data_from_las(self):
-        self.gamma_graph_data = self.get_data(ColumnDataGamma)
-        self.neutronic_graph_data = self.get_data(ColumnDataNeutronic)
-
-    def get_data(self, column_data) -> GraphData:
-        if not self.is_gamma:
-            return None
-        
-        graph_data = GraphData()
-
-        graph_data.near_probe = self.las[column_data.NEAR_PROBE]
-        graph_data.far_probe = self.las[column_data.FAR_PROBE]
-        # graph_data.far_on_near_probe = np.divide(graph_data.far_probe, graph_data.near_probe)
-        graph_data.time = self.las["TIME"]
-        if self.is_gamma and self.is_neutronic:
-            graph_data.temper = self.las[column_data.TEMPER]
-        else:
-            graph_data.temper = self.las[column_data.DEFAULT_TEMPER]
-
-        return graph_data
 
     def define_device_type(self):
         self.is_gamma = "RSD" in self.las.keys()
@@ -215,14 +190,44 @@ class LASFileAnalyzer(QMainWindow):
         # if "NTNC" in self.las.keys():
             # self.device_type_neutronic_radio_btn.setChecked(True)
 
+    def get_data_from_las(self):
+        self.gamma_graph_data = None
+        self.neutronic_graph_data = None
+        if self.is_gamma:
+            self.gamma_graph_data = self.get_data(ColumnDataGamma)
+        if self.is_neutronic:
+            self.neutronic_graph_data = self.get_data(ColumnDataNeutronic)
+
+    def get_data(self, column_data) -> GraphData:
+        graph_data = GraphData()
+
+        graph_data.near_probe = self.las[column_data.NEAR_PROBE]
+        graph_data.far_probe = self.las[column_data.FAR_PROBE]
+        graph_data.time = self.las["TIME"]
+        if self.is_gamma and self.is_neutronic:
+            graph_data.temper = self.las[column_data.TEMPER]
+        else:
+            graph_data.temper = self.las[column_data.DEFAULT_TEMPER]
+
+        if self.is_gamma and not self.is_neutronic:
+            graph_data.near_probe_threshold = int(self.las[column_data.NEAR_PROBE_THRESHOLD][0])
+            graph_data.far_probe_threshold = int(self.las[column_data.FAR_PROBE_THRESHOLD][0])
+        else:
+            graph_data.near_probe_threshold = '\t\t'
+            graph_data.far_probe_threshold = '\t\t'
+
+        return graph_data
+
+
     def set_device_type_gamma(self):
         self.device_type = DeviceType.GAMMA
 
     def set_device_type_neutronic(self):
         self.device_type = DeviceType.NEUTRONIC
 
-    def create_figure(self):
-        fig, self.axes = plt.subplots(4, 1, figsize=(8, 6))
+    def create_figure(self, col_num):
+        fig, self.axes = plt.subplots(4, col_num, figsize=(8, 6))
+        print(self.axes)
 
         fig.canvas.mpl_connect('button_press_event', self.on_mouse_press)
         fig.canvas.mpl_connect('motion_notify_event', self.on_mouse_move)
@@ -231,80 +236,120 @@ class LASFileAnalyzer(QMainWindow):
         self.canvas.figure = fig
 
     def ensure_figure_created(self):
-        if len(self.axes) == 0:
-            self.create_figure()
+        # if len(self.axes) == 0:
+        if self.is_gamma and self.is_neutronic:
+            self.col_num = 2
+        else:
+            self.col_num = 1
+
+        self.create_figure(self.col_num)
 
     def clear_graphs(self):
-        for ax in self.axes:
-            ax.clear()
+        if self.col_num == 2:
+            for col_axes in self.axes:
+                for ax in col_axes:
+                    ax.clear()
+        else:
+            for ax in self.axes:
+                ax.clear()
+
+    def smooth_graph(self, graph_data: GraphData) -> GraphData:
+        graph_data.near_probe = smoothing_function(
+            graph_data.near_probe, 
+            int(self.size_entry.text()), 
+            int(self.smooth_count_entry.text())
+        )
+        graph_data.far_probe = smoothing_function(
+            graph_data.far_probe, 
+            int(self.size_entry.text()), 
+            int(self.smooth_count_entry.text())
+        )
+        graph_data.far_on_near_probe = np.divide(graph_data.far_probe, graph_data.near_probe)
+        delta_len = len(graph_data.time) - len(graph_data.near_probe)
+        # padded_graph_data.near_probe = np.pad(graph_data.near_probe, (delta_len, 0), mode='constant')
+        graph_data.time = graph_data.time[delta_len:]
+        graph_data.temper = graph_data.temper[delta_len:]
+
+        return graph_data
 
     def calc_data(self):
         if self.is_gamma:
-            self.smoothed_near_probe = smoothing_function(
-                self.las[self.near_probe_title], 
-                int(self.size_entry.text()), 
-                int(self.smooth_count_entry.text())
-            )
-            self.smoothed_far_probe = smoothing_function(
-                self.las[self.far_probe_title], 
-                int(self.size_entry.text()), 
-                int(self.smooth_count_entry.text())
-            )
-            self.far_on_near_probe = np.divide(self.smoothed_far_probe, self.smoothed_near_probe)
-            delta_len = len(self.las["TIME"]) - len(self.smoothed_near_probe)
-            # padded_smoothed_near_probe = np.pad(smoothed_near_probe, (delta_len, 0), mode='constant')
-            self.TIME = self.las["TIME"][delta_len:]
+            self.gamma_graph_data = self.smooth_graph(self.gamma_graph_data)
+            self.spinbox_max_value = len(self.gamma_graph_data.near_probe) - 1
         
         if self.is_neutronic:
-            self.smoothed_near_probe = smoothing_function(
-                self.las[self.near_probe_title], 
-                int(self.size_entry.text()), 
-                int(self.smooth_count_entry.text())
-            )
-            self.smoothed_far_probe = smoothing_function(
-                self.las[self.far_probe_title], 
-                int(self.size_entry.text()), 
-                int(self.smooth_count_entry.text())
-            )
-            self.far_on_near_probe = np.divide(self.smoothed_far_probe, self.smoothed_near_probe)
-            delta_len = len(self.las["TIME"]) - len(self.smoothed_near_probe)
-            # padded_smoothed_near_probe = np.pad(smoothed_near_probe, (delta_len, 0), mode='constant')
-            
-            self.TIME = self.las["TIME"][delta_len:]
-
+            self.neutronic_graph_data = self.smooth_graph(self.neutronic_graph_data)
+            self.spinbox_max_value = len(self.neutronic_graph_data.near_probe) - 1
 
     def crop_data(self):
-        self.smoothed_near_probe = self.smoothed_near_probe[self.move_x:]
-        self.smoothed_far_probe = self.smoothed_far_probe[self.move_x:]
-        self.far_on_near_probe = self.far_on_near_probe[self.move_x:]
-        self.TEMPER = self.TEMPER[self.move_x:]
-        self.TIME = self.TIME[self.move_x:]
+        if self.is_gamma:
+            self.gamma_graph_data.near_probe = self.gamma_graph_data.near_probe[self.move_x:]
+            self.gamma_graph_data.far_probe = self.gamma_graph_data.far_probe[self.move_x:]
+            self.gamma_graph_data.far_on_near_probe = self.gamma_graph_data.far_on_near_probe[self.move_x:]
+            self.gamma_graph_data.temper = self.gamma_graph_data.temper[self.move_x:]
+            self.gamma_graph_data.time = self.gamma_graph_data.time[self.move_x:]
+            self.spinbox_max_value = len(self.gamma_graph_data.near_probe) - 1
+
+        if self.is_neutronic:
+            self.neutronic_graph_data.near_probe = self.neutronic_graph_data.near_probe[self.move_x:]
+            self.neutronic_graph_data.far_probe = self.neutronic_graph_data.far_probe[self.move_x:]
+            self.neutronic_graph_data.far_on_near_probe = self.neutronic_graph_data.far_on_near_probe[self.move_x:]
+            self.neutronic_graph_data.temper = self.neutronic_graph_data.temper[self.move_x:]
+            self.neutronic_graph_data.time = self.neutronic_graph_data.time[self.move_x:]
+            self.spinbox_max_value = len(self.neutronic_graph_data.near_probe) - 1
 
 
     def update_red_line_label(self, line_pos_x):
-        NEAR_PROBE_Y = int(np.round(self.smoothed_near_probe[line_pos_x]))
-        FAR_PROBE_Y = int(np.round(self.smoothed_far_probe[line_pos_x]))
-        FAR_ON_NEAR_PROBE_Y = np.round(self.far_on_near_probe[line_pos_x], 3)
-        TEMPER_Y = int(self.TEMPER[line_pos_x])
-        self.red_line_label_y.setText(f'\t{self.near_probe_title} Y: {NEAR_PROBE_Y}\t{self.far_probe_title} Y: {FAR_PROBE_Y}\t{self.far_probe_title}/{self.near_probe_title} Y: {FAR_ON_NEAR_PROBE_Y}\tTEMPER Y: {TEMPER_Y}')
+        if self.is_gamma:
+            NEAR_PROBE_Y = int(np.round(self.gamma_graph_data.near_probe[line_pos_x]))
+            FAR_PROBE_Y = int(np.round(self.gamma_graph_data.far_probe[line_pos_x]))
+            FAR_ON_NEAR_PROBE_Y = np.round(self.gamma_graph_data.far_on_near_probe[line_pos_x], 3)
+            TEMPER_Y = int(self.gamma_graph_data.temper[line_pos_x])
+            self.red_line_label_y.setText(f'\t{ColumnDataGamma.NEAR_PROBE} Y: {NEAR_PROBE_Y}\t{ColumnDataGamma.FAR_PROBE} Y: {FAR_PROBE_Y}\t{ColumnDataGamma.FAR_PROBE}/{ColumnDataGamma.NEAR_PROBE} Y: {FAR_ON_NEAR_PROBE_Y}\tTEMPER Y: {TEMPER_Y}')
+        if self.is_neutronic:
+            NEAR_PROBE_Y = int(np.round(self.neutronic_graph_data.near_probe[line_pos_x]))
+            FAR_PROBE_Y = int(np.round(self.neutronic_graph_data.far_probe[line_pos_x]))
+            FAR_ON_NEAR_PROBE_Y = np.round(self.neutronic_graph_data.far_on_near_probe[line_pos_x], 3)
+            TEMPER_Y = int(self.neutronic_graph_data.temper[line_pos_x])
+            self.red_line_label_y.setText(f'\t{ColumnDataNeutronic.NEAR_PROBE} Y: {NEAR_PROBE_Y}\t{ColumnDataNeutronic.FAR_PROBE} Y: {FAR_PROBE_Y}\t{ColumnDataNeutronic.FAR_PROBE}/{ColumnDataNeutronic.NEAR_PROBE} Y: {FAR_ON_NEAR_PROBE_Y}\tTEMPER Y: {TEMPER_Y}')
+        
 
     def ensure_red_line_created(self):
-        if len(self.red_line) == 0:
+        if self.col_num == 2:
+            for col_axes in self.axes:
+                for ax in col_axes:
+                    self.red_line.append(ax.axvline(0, color='red'))
+        else:
             for ax in self.axes:
                 self.red_line.append(ax.axvline(0, color='red'))
 
+
+        # if len(self.red_line) == 0:
+        #     for ax in self.axes:
+        #         self.red_line.append(ax.axvline(0, color='red'))
+
     def draw_red_line(self):
-        for i, ax in enumerate(self.axes):
-            self.red_line[i].remove()
-            self.red_line[i] = ax.axvline(self.move_x, color='red')
-        self.canvas.draw()
+        if self.col_num == 2:
+            for col_axes in self.axes:
+                for i, ax in enumerate(col_axes):
+                    self.red_line[i].remove()
+                    self.red_line[i] = ax.axvline(self.move_x, color='red')
+        else:
+            for i, ax in enumerate(self.axes):
+                self.red_line[i].remove()
+                self.red_line[i] = ax.axvline(self.move_x, color='red')
+
+        # for i, ax in enumerate(self.axes):
+        #     self.red_line[i].remove()
+        #     self.red_line[i] = ax.axvline(self.move_x, color='red')
+        # self.canvas.draw()
 
     def update_red_line(self, new_value):
         if self.axes is None:
             return
         
-        if len(self.smoothed_near_probe) < new_value:
-            new_value = len(self.smoothed_near_probe)
+        if self.spinbox_max_value + 1 < new_value:
+            new_value = self.spinbox_max_value + 1
 
         if new_value < 0:
             new_value = 0
@@ -316,6 +361,29 @@ class LASFileAnalyzer(QMainWindow):
         self.draw_red_line()
 
 
+    def update_graphs(self):
+        if self.is_gamma and self.is_neutronic:
+            create_graph_on_canvas(self.axes[0, 0], self.gamma_graph_data.time, self.gamma_graph_data.near_probe, f"{ColumnDataGamma.NEAR_PROBE}_1")
+            create_graph_on_canvas(self.axes[0, 0], self.gamma_graph_data.time, self.gamma_graph_data.far_probe, f"{ColumnDataGamma.FAR_PROBE}_1")
+            create_graph_on_canvas(self.axes[1, 0], self.gamma_graph_data.time, self.gamma_graph_data.far_on_near_probe, f"{ColumnDataGamma.FAR_PROBE}/{ColumnDataGamma.NEAR_PROBE}")
+            create_graph_on_canvas(self.axes[1, 0], self.gamma_graph_data.time, self.gamma_graph_data.temper, "TEMPER")
+            create_graph_on_canvas(self.axes[2, 1], self.neutronic_graph_data.time, self.neutronic_graph_data.near_probe, f"{ColumnDataNeutronic.NEAR_PROBE}_1")
+            create_graph_on_canvas(self.axes[2, 1], self.neutronic_graph_data.time, self.neutronic_graph_data.far_probe, f"{ColumnDataNeutronic.FAR_PROBE}_1")
+            create_graph_on_canvas(self.axes[3, 1], self.neutronic_graph_data.time, self.neutronic_graph_data.far_on_near_probe, f"{ColumnDataNeutronic.FAR_PROBE}/{ColumnDataNeutronic.NEAR_PROBE}")
+            create_graph_on_canvas(self.axes[3, 1], self.neutronic_graph_data.time, self.neutronic_graph_data.temper, "TEMPER")
+        
+        if self.is_gamma:
+            create_graph_on_canvas(self.axes[0], self.gamma_graph_data.time, self.gamma_graph_data.near_probe, f"{ColumnDataGamma.NEAR_PROBE}_1")
+            create_graph_on_canvas(self.axes[1], self.gamma_graph_data.time, self.gamma_graph_data.far_probe, f"{ColumnDataGamma.FAR_PROBE}_1")
+            create_graph_on_canvas(self.axes[2], self.gamma_graph_data.time, self.gamma_graph_data.far_on_near_probe, f"{ColumnDataGamma.FAR_PROBE}/{ColumnDataGamma.NEAR_PROBE}")
+            create_graph_on_canvas(self.axes[3], self.gamma_graph_data.time, self.gamma_graph_data.temper, "TEMPER")
+        elif self.is_neutronic:
+            create_graph_on_canvas(self.axes[0], self.neutronic_graph_data.time, self.neutronic_graph_data.near_probe, f"{ColumnDataNeutronic.NEAR_PROBE}_1")
+            create_graph_on_canvas(self.axes[1], self.neutronic_graph_data.time, self.neutronic_graph_data.far_probe, f"{ColumnDataNeutronic.FAR_PROBE}_1")
+            create_graph_on_canvas(self.axes[2], self.neutronic_graph_data.time, self.neutronic_graph_data.far_on_near_probe, f"{ColumnDataNeutronic.FAR_PROBE}/{ColumnDataNeutronic.NEAR_PROBE}")
+            create_graph_on_canvas(self.axes[3], self.neutronic_graph_data.time, self.neutronic_graph_data.temper, "TEMPER")
+
+
     def plot_graphs(self):
         if self.las is None:
             return
@@ -325,19 +393,18 @@ class LASFileAnalyzer(QMainWindow):
         
         self.clear_graphs()
         
+        self.get_data_from_las()
         self.calc_data()
-        create_graph_on_canvas(self.axes[0], self.TIME, self.smoothed_near_probe, f"{self.near_probe_title}_1")
-        create_graph_on_canvas(self.axes[1], self.TIME, self.smoothed_far_probe, f"{self.far_probe_title}_1")
-        create_graph_on_canvas(self.axes[2], self.TIME, self.far_on_near_probe, f"{self.far_probe_title}/{self.near_probe_title}")
-        create_graph_on_canvas(self.axes[3], self.TIME, self.TEMPER, "TEMPER")
 
-        self.x_red_line_spinbox.setMaximum(len(self.smoothed_near_probe) - 1)
+        self.update_graphs()
+
+        self.x_red_line_spinbox.setMaximum(self.spinbox_max_value)
         self.x_red_line_spinbox.setValue(0)
         if self.move_x == 0:
             self.draw_red_line()
 
         self.canvas.draw()
-        
+
     def crop_graphs(self):
         if self.las is None:
             return
@@ -346,12 +413,9 @@ class LASFileAnalyzer(QMainWindow):
 
         self.crop_data()
 
-        create_graph_on_canvas(self.axes[0], self.TIME, self.smoothed_near_probe, f"{self.near_probe_title}_1")
-        create_graph_on_canvas(self.axes[1], self.TIME, self.smoothed_far_probe, f"{self.far_probe_title}_1")
-        create_graph_on_canvas(self.axes[2], self.TIME, self.far_on_near_probe, f"{self.far_probe_title}/{self.near_probe_title}")
-        create_graph_on_canvas(self.axes[3], self.TIME, self.TEMPER, "TEMPER")
+        self.update_graphs()
 
-        self.x_red_line_spinbox.setMaximum(len(self.smoothed_near_probe) - 1)
+        self.x_red_line_spinbox.setMaximum(self.spinbox_max_value)
         self.x_red_line_spinbox.setValue(0)
         if self.move_x == 0:
             self.draw_red_line()
@@ -360,22 +424,15 @@ class LASFileAnalyzer(QMainWindow):
         
     
     def save_to_docx(self):
-        if not self.is_realdepth:
-            titles = self.near_probe_title, self.far_probe_title
-            probe_data = (self.smoothed_near_probe, self.smoothed_far_probe, self.far_on_near_probe)
-            self.save_to_separate_docx(probe_data, titles)
-            return
+        if self.is_gamma:
+            titles = ColumnDataGamma.NEAR_PROBE, ColumnDataGamma.FAR_PROBE
+            self.save_to_separate_docx(self.gamma_graph_data, titles)
+            
+        if self.is_neutronic:
+            titles = ColumnDataNeutronic.NEAR_PROBE, ColumnDataNeutronic.FAR_PROBE
+            self.save_to_separate_docx(self.neutronic_graph_data, titles)
 
-        # Если данные получены из realdepth, сохраняем в 2 отдельных файла
-        gamma_titles = self.near_probe_title, self.far_probe_title
-        neutronic_titles = self.near_probe_title, self.far_probe_title
-        gamma_probe_data = (self.smoothed_near_probe, self.smoothed_far_probe, self.far_on_near_probe)
-        neutronic_probe_data = (self.smoothed_near_probe, self.smoothed_far_probe, self.far_on_near_probe)
-
-        self.save_to_separate_docx(gamma_probe_data, gamma_titles)
-        self.save_to_separate_docx(neutronic_probe_data, neutronic_titles)
-    
-    def save_to_separate_docx(self, probe_data, titles):
+    def save_to_separate_docx(self, data: GraphData, titles):
         if self.las is None:
             return
 
@@ -387,11 +444,9 @@ class LASFileAnalyzer(QMainWindow):
 
         description = (serial_number, date, instrument_name)
 
-        data = probe_data, self.TEMPER, self.TIME
-
         thresholds = (
-            self.columns_data[f"{self.device_type}"]["near_probe_threshold"],
-            self.columns_data[f"{self.device_type}"]["far_probe_threshold"]
+            data.near_probe_threshold,
+            data.far_probe_threshold
         )
 
         success = save2doc(
@@ -418,7 +473,7 @@ class LASFileAnalyzer(QMainWindow):
         is_cooling = self.process_cool_checkbox.isChecked()
         window_size = int(self.size_entry.text())
 
-        T_max_index, _ = find_temperature_drop_point(self.TEMPER, 2)
+        T_max_index, _ = find_temperature_drop_point(self.gamma_graph_data.temper, 2)
         if not T_max_index:
             print('program not defined boundaries beetwen heating and cooling')
             print('may be temperature function only show heating')
@@ -426,7 +481,8 @@ class LASFileAnalyzer(QMainWindow):
 
         heating_table, cooling_table = get_calc_for_tables(
             is_heating, is_cooling, window_size, T_max_index,
-            self.TEMPER, self.smoothed_near_probe, self.smoothed_far_probe, self.far_on_near_probe
+            self.gamma_graph_data.temper, self.gamma_graph_data.near_probe,
+            self.gamma_graph_data.far_probe, self.gamma_graph_data.far_on_near_probe
         )
 
         if is_heating:

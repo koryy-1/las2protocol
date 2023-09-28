@@ -6,6 +6,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 import lasio
 
+from SidePanel import SidePanel
+
 from calc_types import DeviceType, GraphData, ColumnDataGamma, ColumnDataNeutronic
 
 from process_sample import get_calc_for_tables, save2doc
@@ -22,10 +24,6 @@ class LASFileAnalyzer(QMainWindow):
         # Создаем главный виджет
         main_widget = QWidget(self)
         self.setCentralWidget(main_widget)
-
-        # Создаем вертикальный макет для параметров
-        params_layout = QVBoxLayout()
-        params_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
 
         # Размер окна
         DURATION_1_COUNT = 4000
@@ -47,37 +45,11 @@ class LASFileAnalyzer(QMainWindow):
         self.device_type_neutronic_radio_btn = QRadioButton("Neutronic")
         self.device_type_neutronic_radio_btn.toggled.connect(self.set_device_type_neutronic)
 
-        # Создаем виджет для параметров с использованием QFormLayout
-        form_layout = QFormLayout()
-        form_layout.addRow("Размер окна:", self.size_entry)
-        form_layout.addRow("Количество применений сглаживания:", self.smooth_count_entry)
-        form_layout.addRow("Какую часть графика обрабатывать:", self.process_heat_checkbox)
-        form_layout.addRow("", self.process_cool_checkbox)
-        form_layout.addRow("Тип прибора:", self.device_type_gamma_radio_btn)
-        form_layout.addRow("", self.device_type_neutronic_radio_btn)
-        params_layout.addLayout(form_layout)
-
-
-        # Кнопка открытия .las файла
-        self.open_button = QPushButton("Открыть .las файл")
-        self.open_button.clicked.connect(self.open_las_file)
-        params_layout.addWidget(self.open_button)
-
-        # Метка для вывода пути до файла
-        self.file_path_label = QLabel("")
-        params_layout.addWidget(self.file_path_label)
-
-        # Кнопка построения графиков
-        self.plot_button = QPushButton("Построить графики")
-        self.plot_button.clicked.connect(self.plot_graphs)
-        params_layout.addWidget(self.plot_button)
-
         # Создание кнопки "Обрезать"
         self.cut_button = QPushButton("Обрезать")
         self.cut_button.clicked.connect(self.crop_graphs)
 
         # ввод со стрелками
-        
         self.red_line_label_x = QLabel("X: ")
         self.red_line_label_y = QLabel("")
         self.x_red_line_spinbox = QSpinBox(self)
@@ -104,24 +76,13 @@ class LASFileAnalyzer(QMainWindow):
         graph_layout.addLayout(btns_layout)
         graph_layout.addWidget(self.canvas)
 
-		# Кнопка показать расчеты
-        self.show_calculations_button = QPushButton("Показать расчеты")
-        self.show_calculations_button.clicked.connect(self.show_calculations)
-        params_layout.addWidget(self.show_calculations_button)
-
-        # Кнопка сохранения в .docx файл
-        self.save_button = QPushButton("Сохранить в .docx файл")
-        self.save_button.clicked.connect(self.save_to_docx)
-        params_layout.addWidget(self.save_button)
-        self.success_label = QLabel("")
-        params_layout.addWidget(self.success_label)
-
         # self.save_excel_button
         # las.to_excel('output.xlsx')
 
         # Создаем главный горизонтальный макет для размещения виджета с параметрами и виджета с графиками
         main_layout = QHBoxLayout()
-        main_layout.addLayout(params_layout)
+        side_panel = SidePanel()
+        main_layout.addLayout(side_panel)
         main_layout.addLayout(graph_layout)
 
         # Устанавливаем главный макет в главный виджет
@@ -330,10 +291,12 @@ class LASFileAnalyzer(QMainWindow):
 
     def draw_red_line(self):
         if self.col_num == 2:
+            i = 0
             for col_axes in self.axes:
-                for i, ax in enumerate(col_axes):
+                for ax in col_axes:
                     self.red_line[i].remove()
                     self.red_line[i] = ax.axvline(self.move_x, color='red')
+                    i += 1
         else:
             for i, ax in enumerate(self.axes):
                 self.red_line[i].remove()
@@ -342,7 +305,7 @@ class LASFileAnalyzer(QMainWindow):
         # for i, ax in enumerate(self.axes):
         #     self.red_line[i].remove()
         #     self.red_line[i] = ax.axvline(self.move_x, color='red')
-        # self.canvas.draw()
+        self.canvas.draw()
 
     def update_red_line(self, new_value):
         if self.axes is None:
@@ -372,7 +335,7 @@ class LASFileAnalyzer(QMainWindow):
             create_graph_on_canvas(self.axes[0, 1], self.neutronic_graph_data.time, self.neutronic_graph_data.near_probe, f"{ColumnDataNeutronic.NEAR_PROBE}_1")
             create_graph_on_canvas(self.axes[1, 1], self.neutronic_graph_data.time, self.neutronic_graph_data.far_probe, f"{ColumnDataNeutronic.FAR_PROBE}_1")
             create_graph_on_canvas(self.axes[2, 1], self.neutronic_graph_data.time, self.neutronic_graph_data.far_on_near_probe, f"{ColumnDataNeutronic.FAR_PROBE}/{ColumnDataNeutronic.NEAR_PROBE}")
-            create_graph_on_canvas(self.axes[3, 1], self.neutronic_graph_data.time, self.neutronic_graph_data.temper, "TEMPER")
+            create_graph_on_canvas(self.axes[3, 1], self.gamma_graph_data.time, self.gamma_graph_data.temper, "TEMPER")
         elif self.is_gamma:
             create_graph_on_canvas(self.axes[0], self.gamma_graph_data.time, self.gamma_graph_data.near_probe, f"{ColumnDataGamma.NEAR_PROBE}_1")
             create_graph_on_canvas(self.axes[1], self.gamma_graph_data.time, self.gamma_graph_data.far_probe, f"{ColumnDataGamma.FAR_PROBE}_1")

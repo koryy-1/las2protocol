@@ -1,6 +1,6 @@
 import numpy as np
 from utils import *
-from calc_types import TemperatureType
+from models.TempType import TempType
 
 
 def calculate_metrics(
@@ -49,14 +49,14 @@ def calculate_metrics(
 def initialize_base_values(temper_type, WINDOW_SIZE, TEMPER, RSD, RLD, RLD_on_RSD):
     RSD_BASE, RLD_BASE, RLD_ON_RSD_BASE, T_base = 0, 0, 0, 0
 
-    if temper_type == TemperatureType.HEATING:
+    if temper_type == TempType.HEATING:
         T_base_max_index, T_base = find_temperature_rise_point(TEMPER, 1)
         if T_base_max_index:
             index_for_base_value = min(T_base_max_index, WINDOW_SIZE * 5)
             RSD_BASE = np.average(RSD[:index_for_base_value])
             RLD_BASE = np.average(RLD[:index_for_base_value])
             RLD_ON_RSD_BASE = np.average(RLD_on_RSD[:index_for_base_value])
-    elif temper_type == TemperatureType.COOLING:
+    elif temper_type == TempType.COOLING:
         T_base_max_index, T_base = find_temperature_rise_point_right(TEMPER, 1)
         if T_base_max_index:
             interval_for_base_value = min((len(TEMPER) - 1) - T_base_max_index, WINDOW_SIZE * 5)

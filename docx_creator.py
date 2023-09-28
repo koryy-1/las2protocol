@@ -2,10 +2,10 @@ from docx import Document
 from docx.shared import Inches
 from docx.shared import Pt
 from docx.enum.text import WD_ALIGN_PARAGRAPH
-from calc_types import ParametersForReporting
+from models.ParamsForReport import ParamsForReport
 
 
-def make_docx(params_for_reporting: ParametersForReporting, MEM_FILES, picture_size):
+def make_docx(params_for_reporting: ParamsForReport, MEM_FILES, picture_size):
     (MF_NEAR_PROBE, MF_FAR_PROBE, MF_FAR_ON_NEAR_PROBE, MF_MT) = MEM_FILES
 
     document = Document()
@@ -122,7 +122,7 @@ def make_docx(params_for_reporting: ParametersForReporting, MEM_FILES, picture_s
     return document
 
 
-def get_temp_ranges(params_for_reporting: ParametersForReporting):
+def get_temp_ranges(params_for_reporting: ParamsForReport):
     heating_range = f'от {int(params_for_reporting.temp_min_left)} до {int(params_for_reporting.temp_max)} градусов'
     cooling_range = f'от {int(params_for_reporting.temp_max)} до {int(params_for_reporting.temp_min_right)} градусов'
     return f'{heating_range if params_for_reporting.heating_table else ""}{" и " if params_for_reporting.heating_table and params_for_reporting.cooling_table else ""}{cooling_range if params_for_reporting.cooling_table else ""}'

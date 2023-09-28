@@ -1,1 +1,1 @@
-# protocol_maker
+# las2protocol - tool that read .las file, plot graphics and enter them into Word document

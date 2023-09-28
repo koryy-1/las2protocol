@@ -4,11 +4,13 @@ import datetime
 
 from calculations import *
 
-from calc_types import GraphData, TemperatureType, ParametersForReporting
+from models.GraphData import GraphData
+from models.TempType import TempType
+from models.ParamsForReport import ParamsForReport
 
 from docx_creator import make_docx
 
-from plot_creator import create_graph
+from graph_creator import create_graph
 
 # main
 def get_calc_for_tables(
@@ -25,7 +27,7 @@ def get_calc_for_tables(
     cooling_table = None
     if is_heating:
         heating_table = calculate_metrics(
-            TemperatureType.HEATING, 
+            TempType.HEATING, 
             window_size, 
             TEMPER[:T_max_index], 
             smoothed_near_probe[:T_max_index], 
@@ -37,7 +39,7 @@ def get_calc_for_tables(
     # print(las["MT"][T_max_index:])
     if is_cooling:
         cooling_table = calculate_metrics(
-            TemperatureType.COOLING, 
+            TempType.COOLING, 
             window_size, 
             TEMPER[T_max_index:], 
             smoothed_near_probe[T_max_index:], 
@@ -123,25 +125,25 @@ def save2doc(window_size, is_heating, is_cooling, description, data: GraphData, 
     
 
     ### create and save .docx file #######################
-    params_for_reporting = ParametersForReporting()
-    params_for_reporting.serial_number = serial_number
-    params_for_reporting.date = date
-    params_for_reporting.instrument_name = instrument_name
-    params_for_reporting.heating_table = heating_table
-    params_for_reporting.cooling_table = cooling_table
-    params_for_reporting.conclusion = conclusion
-    params_for_reporting.temp_min_left = data.temper[:T_max_index].min()
-    params_for_reporting.temp_max = data.temper.max()
-    params_for_reporting.temp_min_right = data.temper[T_max_index:].min()
-    params_for_reporting.near_probe_title = near_probe_title
-    params_for_reporting.far_probe_title = far_probe_title
-    params_for_reporting.near_probe_threshold = near_probe_threshold
-    params_for_reporting.far_probe_threshold = far_probe_threshold
+    params_for_reporting = ParamsForReport(
+        serial_number = serial_number,
+        date = date,
+        instrument_name = instrument_name,
+        heating_table = heating_table,
+        cooling_table = cooling_table,
+        conclusion = conclusion,
+        temp_min_left = data.temper[:T_max_index].min(),
+        temp_max = data.temper.max(),
+        temp_min_right = data.temper[T_max_index:].min(),
+        near_probe_title = near_probe_title,
+        far_probe_title = far_probe_title,
+        near_probe_threshold = near_probe_threshold,
+        far_probe_threshold = far_probe_threshold
+    )
 
 
     current_date = datetime.datetime.now().strftime('%d%m%y')
     output_filename = f"{serial_number}_{instrument_name}_{current_date}_by_program"
-    # print(f'creating {output_filename}.docx...')
     doc = make_docx(params_for_reporting, MEM_FILES, picture_size=6.5)
 
     close_active_docx_wnd(f'{output_filename}.docx')
@@ -149,9 +151,5 @@ def save2doc(window_size, is_heating, is_cooling, description, data: GraphData, 
     try:
         doc.save(f'{output_filename}.docx')
         return True
-        # print('docx successfully saved')
-        # print('Done.')
     except:
         return False
-        # print()
-        # print(f'ERROR: failed to save {output_filename}.docx')

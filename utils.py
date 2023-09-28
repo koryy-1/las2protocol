@@ -1,7 +1,5 @@
 import numpy as np
 import pandas as pd
-import win32com.client
-import datetime
 
 def exceeds_threshold(calculation_table):
     max_percent_diff = max(
@@ -68,10 +66,6 @@ def find_min_variance_interval(data, interval_length=60):
     return variance_arr
 
 def smoothing_function(data, window_size, count):
-    
-
-
-
     smoothed_data = data
     for _ in range(count):
         smoothed_data = pd.Series(smoothed_data).rolling(window=window_size).mean().iloc[window_size-1:].values

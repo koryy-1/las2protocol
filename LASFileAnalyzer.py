@@ -227,7 +227,7 @@ class LASFileAnalyzer(QMainWindow):
 
     def create_figure(self, col_num):
         fig, self.axes = plt.subplots(4, col_num, figsize=(8, 6))
-        print(self.axes)
+        # print(self.axes)
 
         fig.canvas.mpl_connect('button_press_event', self.on_mouse_press)
         fig.canvas.mpl_connect('motion_notify_event', self.on_mouse_move)
@@ -363,16 +363,17 @@ class LASFileAnalyzer(QMainWindow):
 
     def update_graphs(self):
         if self.is_gamma and self.is_neutronic:
+            # print('self.gamma_graph_data.time', self.gamma_graph_data.time)
+            # print('self.neutronic_graph_data.far_on_near_probe', self.neutronic_graph_data.far_on_near_probe)
             create_graph_on_canvas(self.axes[0, 0], self.gamma_graph_data.time, self.gamma_graph_data.near_probe, f"{ColumnDataGamma.NEAR_PROBE}_1")
-            create_graph_on_canvas(self.axes[0, 0], self.gamma_graph_data.time, self.gamma_graph_data.far_probe, f"{ColumnDataGamma.FAR_PROBE}_1")
-            create_graph_on_canvas(self.axes[1, 0], self.gamma_graph_data.time, self.gamma_graph_data.far_on_near_probe, f"{ColumnDataGamma.FAR_PROBE}/{ColumnDataGamma.NEAR_PROBE}")
-            create_graph_on_canvas(self.axes[1, 0], self.gamma_graph_data.time, self.gamma_graph_data.temper, "TEMPER")
-            create_graph_on_canvas(self.axes[2, 1], self.neutronic_graph_data.time, self.neutronic_graph_data.near_probe, f"{ColumnDataNeutronic.NEAR_PROBE}_1")
-            create_graph_on_canvas(self.axes[2, 1], self.neutronic_graph_data.time, self.neutronic_graph_data.far_probe, f"{ColumnDataNeutronic.FAR_PROBE}_1")
-            create_graph_on_canvas(self.axes[3, 1], self.neutronic_graph_data.time, self.neutronic_graph_data.far_on_near_probe, f"{ColumnDataNeutronic.FAR_PROBE}/{ColumnDataNeutronic.NEAR_PROBE}")
+            create_graph_on_canvas(self.axes[1, 0], self.gamma_graph_data.time, self.gamma_graph_data.far_probe, f"{ColumnDataGamma.FAR_PROBE}_1")
+            create_graph_on_canvas(self.axes[2, 0], self.gamma_graph_data.time, self.gamma_graph_data.far_on_near_probe, f"{ColumnDataGamma.FAR_PROBE}/{ColumnDataGamma.NEAR_PROBE}")
+            create_graph_on_canvas(self.axes[3, 0], self.gamma_graph_data.time, self.gamma_graph_data.temper, "TEMPER")
+            create_graph_on_canvas(self.axes[0, 1], self.neutronic_graph_data.time, self.neutronic_graph_data.near_probe, f"{ColumnDataNeutronic.NEAR_PROBE}_1")
+            create_graph_on_canvas(self.axes[1, 1], self.neutronic_graph_data.time, self.neutronic_graph_data.far_probe, f"{ColumnDataNeutronic.FAR_PROBE}_1")
+            create_graph_on_canvas(self.axes[2, 1], self.neutronic_graph_data.time, self.neutronic_graph_data.far_on_near_probe, f"{ColumnDataNeutronic.FAR_PROBE}/{ColumnDataNeutronic.NEAR_PROBE}")
             create_graph_on_canvas(self.axes[3, 1], self.neutronic_graph_data.time, self.neutronic_graph_data.temper, "TEMPER")
-        
-        if self.is_gamma:
+        elif self.is_gamma:
             create_graph_on_canvas(self.axes[0], self.gamma_graph_data.time, self.gamma_graph_data.near_probe, f"{ColumnDataGamma.NEAR_PROBE}_1")
             create_graph_on_canvas(self.axes[1], self.gamma_graph_data.time, self.gamma_graph_data.far_probe, f"{ColumnDataGamma.FAR_PROBE}_1")
             create_graph_on_canvas(self.axes[2], self.gamma_graph_data.time, self.gamma_graph_data.far_on_near_probe, f"{ColumnDataGamma.FAR_PROBE}/{ColumnDataGamma.NEAR_PROBE}")
@@ -438,9 +439,11 @@ class LASFileAnalyzer(QMainWindow):
 
         self.success_label.setText("processing...")
 
-        serial_number = self.las.well["SNUM"].value
+        # serial_number = self.las.well["SNUM"].value
+        serial_number = 'self.las.well["SNUM"].value'
         date = self.las.well["DATE"].value
-        instrument_name = self.las.well["NAME"].value
+        # instrument_name = self.las.well["NAME"].value
+        instrument_name = 'self.las.well["NAME"].value'
 
         description = (serial_number, date, instrument_name)
 

@@ -68,7 +68,8 @@ class ColumnDataGamma(AbstractColumnData):
 class ColumnDataNeutronic(AbstractColumnData):
     _near_probe = 'NTNC'
     _far_probe = 'FTNC'
-    _temper = 'T_NNKT'
+    # _temper = 'T_NNKT'
+    _temper = 'T_GGKP'
     _default_temper = 'MT'
     _near_probe_threshold = ''
     _far_probe_threshold = ''

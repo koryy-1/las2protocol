@@ -151,5 +151,6 @@ def save2doc(window_size, is_heating, is_cooling, description, data: GraphData, 
     try:
         doc.save(f'{output_filename}.docx')
         return True
-    except:
+    except Exception as e:
+        print(e)
         return False

@@ -17,11 +17,14 @@ class GraphCanvas(QVBoxLayout):
     def __init__(self):
         super().__init__()
 
+        self.column_data_gamma = ColumnDataGamma()
+        self.column_data_neutronic = ColumnDataNeutronic()
+
         # Создание кнопки "Обрезать"
         self.cut_button = QPushButton("Обрезать")
         self.cut_button.clicked.connect(self.crop_graphs)
 
-        # ввод со стрелками
+        # красная линия
         self.red_line_label_x = QLabel("X: ")
         self.red_line_label_y = QLabel("")
         self.x_red_line_spinbox = QSpinBox()
@@ -132,25 +135,24 @@ class GraphCanvas(QVBoxLayout):
         self.gamma_graph_data = None
         self.neutronic_graph_data = None
         if self.is_gamma:
-            self.gamma_graph_data = self.get_data(ColumnDataGamma)
+            self.gamma_graph_data = self.get_data(self.column_data_gamma)
         if self.is_neutronic:
-            self.neutronic_graph_data = self.get_data(ColumnDataNeutronic)
+            self.neutronic_graph_data = self.get_data(self.column_data_neutronic)
 
-    def get_data(self, abs_column_data: Type[AbstractColumnData]) -> GraphData:
+    def get_data(self, abs_column_data: AbstractColumnData) -> GraphData:
         graph_data = GraphData()
-        column_data = abs_column_data()
 
-        graph_data.near_probe = self.las[column_data.near_probe]
-        graph_data.far_probe = self.las[column_data.far_probe]
+        graph_data.near_probe = self.las[abs_column_data.near_probe]
+        graph_data.far_probe = self.las[abs_column_data.far_probe]
         graph_data.time = self.las["TIME"]
         if self.is_gamma and self.is_neutronic:
-            graph_data.temper = self.las[column_data.temper]
+            graph_data.temper = self.las[abs_column_data.temper]
         else:
-            graph_data.temper = self.las[column_data.default_temper]
+            graph_data.temper = self.las[abs_column_data.default_temper]
 
         if self.is_gamma and not self.is_neutronic:
-            graph_data.near_probe_threshold = int(self.las[column_data.near_probe_threshold][0])
-            graph_data.far_probe_threshold = int(self.las[column_data.far_probe_threshold][0])
+            graph_data.near_probe_threshold = int(self.las[abs_column_data.near_probe_threshold][0])
+            graph_data.far_probe_threshold = int(self.las[abs_column_data.far_probe_threshold][0])
         else:
             graph_data.near_probe_threshold = '\t\t'
             graph_data.far_probe_threshold = '\t\t'
@@ -192,13 +194,13 @@ class GraphCanvas(QVBoxLayout):
             FAR_PROBE_Y = int(np.round(self.gamma_graph_data.far_probe[line_pos_x]))
             FAR_ON_NEAR_PROBE_Y = np.round(self.gamma_graph_data.far_on_near_probe[line_pos_x], 3)
             TEMPER_Y = int(self.gamma_graph_data.temper[line_pos_x])
-            label_text = f'\t{ColumnDataGamma.near_probe} Y: {NEAR_PROBE_Y}\t{ColumnDataGamma.far_probe} Y: {FAR_PROBE_Y}\t{ColumnDataGamma.far_probe}/{ColumnDataGamma.near_probe} Y: {FAR_ON_NEAR_PROBE_Y}\tTEMPER Y: {TEMPER_Y}'
+            label_text = f'\t{self.column_data_gamma.near_probe} Y: {NEAR_PROBE_Y}\t{self.column_data_gamma.far_probe} Y: {FAR_PROBE_Y}\t{self.column_data_gamma.far_probe}/{self.column_data_gamma.near_probe} Y: {FAR_ON_NEAR_PROBE_Y}\tTEMPER Y: {TEMPER_Y}'
         if self.is_neutronic:
             NEAR_PROBE_Y = int(np.round(self.neutronic_graph_data.near_probe[line_pos_x]))
             FAR_PROBE_Y = int(np.round(self.neutronic_graph_data.far_probe[line_pos_x]))
             FAR_ON_NEAR_PROBE_Y = np.round(self.neutronic_graph_data.far_on_near_probe[line_pos_x], 3)
             TEMPER_Y = int(self.neutronic_graph_data.temper[line_pos_x])
-            label_text = f'\t{ColumnDataNeutronic.near_probe} Y: {NEAR_PROBE_Y}\t{ColumnDataNeutronic.far_probe} Y: {FAR_PROBE_Y}\t{ColumnDataNeutronic.far_probe}/{ColumnDataNeutronic.near_probe} Y: {FAR_ON_NEAR_PROBE_Y}\tTEMPER Y: {TEMPER_Y}'
+            label_text = label_text + f'\t{self.column_data_neutronic.near_probe} Y: {NEAR_PROBE_Y}\t{self.column_data_neutronic.far_probe} Y: {FAR_PROBE_Y}\t{self.column_data_neutronic.far_probe}/{self.column_data_neutronic.near_probe} Y: {FAR_ON_NEAR_PROBE_Y}\tTEMPER Y: {TEMPER_Y}'
         self.red_line_label_y.setText(label_text)
         
 
@@ -255,25 +257,53 @@ class GraphCanvas(QVBoxLayout):
         if self.is_gamma and self.is_neutronic:
             # print('self.gamma_graph_data.time', self.gamma_graph_data.time)
             # print('self.neutronic_graph_data.far_on_near_probe', self.neutronic_graph_data.far_on_near_probe)
-            create_graph_on_canvas(self.axes[0, 0], self.gamma_graph_data.time, self.gamma_graph_data.near_probe, f"{ColumnDataGamma.near_probe}_1")
-            create_graph_on_canvas(self.axes[1, 0], self.gamma_graph_data.time, self.gamma_graph_data.far_probe, f"{ColumnDataGamma.far_probe}_1")
-            create_graph_on_canvas(self.axes[2, 0], self.gamma_graph_data.time, self.gamma_graph_data.far_on_near_probe, f"{ColumnDataGamma.far_probe}/{ColumnDataGamma.near_probe}")
+            create_graph_on_canvas(self.axes[0, 0], self.gamma_graph_data.time, self.gamma_graph_data.near_probe, f"{self.column_data_gamma.near_probe}_1")
+            create_graph_on_canvas(self.axes[1, 0], self.gamma_graph_data.time, self.gamma_graph_data.far_probe, f"{self.column_data_gamma.far_probe}_1")
+            create_graph_on_canvas(self.axes[2, 0], self.gamma_graph_data.time, self.gamma_graph_data.far_on_near_probe, f"{self.column_data_gamma.far_probe}/{self.column_data_gamma.near_probe}")
             create_graph_on_canvas(self.axes[3, 0], self.gamma_graph_data.time, self.gamma_graph_data.temper, "TEMPER")
-            create_graph_on_canvas(self.axes[0, 1], self.neutronic_graph_data.time, self.neutronic_graph_data.near_probe, f"{ColumnDataNeutronic.near_probe}_1")
-            create_graph_on_canvas(self.axes[1, 1], self.neutronic_graph_data.time, self.neutronic_graph_data.far_probe, f"{ColumnDataNeutronic.far_probe}_1")
-            create_graph_on_canvas(self.axes[2, 1], self.neutronic_graph_data.time, self.neutronic_graph_data.far_on_near_probe, f"{ColumnDataNeutronic.far_probe}/{ColumnDataNeutronic.near_probe}")
-            create_graph_on_canvas(self.axes[3, 1], self.gamma_graph_data.time, self.gamma_graph_data.temper, "TEMPER")
+            create_graph_on_canvas(self.axes[0, 1], self.neutronic_graph_data.time, self.neutronic_graph_data.near_probe, f"{self.column_data_neutronic.near_probe}_1")
+            create_graph_on_canvas(self.axes[1, 1], self.neutronic_graph_data.time, self.neutronic_graph_data.far_probe, f"{self.column_data_neutronic.far_probe}_1")
+            create_graph_on_canvas(self.axes[2, 1], self.neutronic_graph_data.time, self.neutronic_graph_data.far_on_near_probe, f"{self.column_data_neutronic.far_probe}/{self.column_data_neutronic.near_probe}")
+            create_graph_on_canvas(self.axes[3, 1], self.neutronic_graph_data.time, self.neutronic_graph_data.temper, "TEMPER")
         elif self.is_gamma:
-            create_graph_on_canvas(self.axes[0], self.gamma_graph_data.time, self.gamma_graph_data.near_probe, f"{ColumnDataGamma.near_probe}_1")
-            create_graph_on_canvas(self.axes[1], self.gamma_graph_data.time, self.gamma_graph_data.far_probe, f"{ColumnDataGamma.far_probe}_1")
-            create_graph_on_canvas(self.axes[2], self.gamma_graph_data.time, self.gamma_graph_data.far_on_near_probe, f"{ColumnDataGamma.far_probe}/{ColumnDataGamma.near_probe}")
+            create_graph_on_canvas(self.axes[0], self.gamma_graph_data.time, self.gamma_graph_data.near_probe, f"{self.column_data_gamma.near_probe}_1")
+            create_graph_on_canvas(self.axes[1], self.gamma_graph_data.time, self.gamma_graph_data.far_probe, f"{self.column_data_gamma.far_probe}_1")
+            create_graph_on_canvas(self.axes[2], self.gamma_graph_data.time, self.gamma_graph_data.far_on_near_probe, f"{self.column_data_gamma.far_probe}/{self.column_data_gamma.near_probe}")
             create_graph_on_canvas(self.axes[3], self.gamma_graph_data.time, self.gamma_graph_data.temper, "TEMPER")
         elif self.is_neutronic:
-            create_graph_on_canvas(self.axes[0], self.neutronic_graph_data.time, self.neutronic_graph_data.near_probe, f"{ColumnDataNeutronic.near_probe}_1")
-            create_graph_on_canvas(self.axes[1], self.neutronic_graph_data.time, self.neutronic_graph_data.far_probe, f"{ColumnDataNeutronic.far_probe}_1")
-            create_graph_on_canvas(self.axes[2], self.neutronic_graph_data.time, self.neutronic_graph_data.far_on_near_probe, f"{ColumnDataNeutronic.far_probe}/{ColumnDataNeutronic.near_probe}")
+            create_graph_on_canvas(self.axes[0], self.neutronic_graph_data.time, self.neutronic_graph_data.near_probe, f"{self.column_data_neutronic.near_probe}_1")
+            create_graph_on_canvas(self.axes[1], self.neutronic_graph_data.time, self.neutronic_graph_data.far_probe, f"{self.column_data_neutronic.far_probe}_1")
+            create_graph_on_canvas(self.axes[2], self.neutronic_graph_data.time, self.neutronic_graph_data.far_on_near_probe, f"{self.column_data_neutronic.far_probe}/{self.column_data_neutronic.near_probe}")
             create_graph_on_canvas(self.axes[3], self.neutronic_graph_data.time, self.neutronic_graph_data.temper, "TEMPER")
 
+
+    def smooth_graph(self, graph_data: GraphData) -> GraphData:
+        graph_data.near_probe = smoothing_function(
+            graph_data.near_probe, 
+            int(self.size_entry), 
+            int(self.smooth_count_entry)
+        )
+        graph_data.far_probe = smoothing_function(
+            graph_data.far_probe, 
+            int(self.size_entry), 
+            int(self.smooth_count_entry)
+        )
+        graph_data.far_on_near_probe = np.divide(graph_data.far_probe[np.isfinite(graph_data.far_probe)], graph_data.near_probe[np.isfinite(graph_data.near_probe)])
+        delta_len = len(graph_data.time) - len(graph_data.near_probe)
+        # padded_graph_data.near_probe = np.pad(graph_data.near_probe, (delta_len, 0), mode='constant')
+        graph_data.time = graph_data.time[delta_len:]
+        graph_data.temper = graph_data.temper[delta_len:]
+
+        return graph_data
+
+    def calc_data(self):
+        if self.is_gamma:
+            self.gamma_graph_data = self.smooth_graph(self.gamma_graph_data)
+            self.spinbox_max_value = len(self.gamma_graph_data.near_probe) - 1
+        
+        if self.is_neutronic:
+            self.neutronic_graph_data = self.smooth_graph(self.neutronic_graph_data)
+            self.spinbox_max_value = len(self.neutronic_graph_data.near_probe) - 1
 
     def plot_graphs(self):
         if self.las is None:
@@ -312,31 +342,3 @@ class GraphCanvas(QVBoxLayout):
             self.draw_red_line()
 
         self.canvas.draw()
-
-    def smooth_graph(self, graph_data: GraphData) -> GraphData:
-        graph_data.near_probe = smoothing_function(
-            graph_data.near_probe, 
-            int(self.size_entry), 
-            int(self.smooth_count_entry)
-        )
-        graph_data.far_probe = smoothing_function(
-            graph_data.far_probe, 
-            int(self.size_entry), 
-            int(self.smooth_count_entry)
-        )
-        graph_data.far_on_near_probe = np.divide(graph_data.far_probe, graph_data.near_probe)
-        delta_len = len(graph_data.time) - len(graph_data.near_probe)
-        # padded_graph_data.near_probe = np.pad(graph_data.near_probe, (delta_len, 0), mode='constant')
-        graph_data.time = graph_data.time[delta_len:]
-        graph_data.temper = graph_data.temper[delta_len:]
-
-        return graph_data
-
-    def calc_data(self):
-        if self.is_gamma:
-            self.gamma_graph_data = self.smooth_graph(self.gamma_graph_data)
-            self.spinbox_max_value = len(self.gamma_graph_data.near_probe) - 1
-        
-        if self.is_neutronic:
-            self.neutronic_graph_data = self.smooth_graph(self.neutronic_graph_data)
-            self.spinbox_max_value = len(self.neutronic_graph_data.near_probe) - 1

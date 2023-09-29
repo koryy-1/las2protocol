@@ -15,6 +15,9 @@ class SidePanel(QVBoxLayout):
 
         self.las_file_analyzer = las_file_analyzer
 
+        self.column_data_gamma = ColumnDataGamma()
+        self.column_data_neutronic = ColumnDataNeutronic()
+
         self.setAlignment(Qt.AlignmentFlag.AlignTop)
 
         # Размер окна
@@ -22,11 +25,13 @@ class SidePanel(QVBoxLayout):
         self.size_entry = QLineEdit()
         self.size_entry.setText(str(int(4 * 60 * 1000 / DURATION_1_COUNT)))
         self.size_entry.textChanged.connect(self.graph_canvas.set_size_entry)
+        self.graph_canvas.set_size_entry(self.size_entry.text())
 
         # Количество применений функции сглаживания
         self.smooth_count_entry = QLineEdit()
         self.smooth_count_entry.setText("3")
         self.smooth_count_entry.textChanged.connect(self.graph_canvas.set_smooth_count_entry)
+        self.graph_canvas.set_smooth_count_entry(self.smooth_count_entry.text())
 
         # Часть графика для обработки
         self.process_heat_checkbox = QCheckBox("Нагрев")
@@ -43,8 +48,8 @@ class SidePanel(QVBoxLayout):
         # Создаем виджет для параметров с использованием QFormLayout
         form_layout = QFormLayout()
         form_layout.addRow("Размер окна:", self.size_entry)
-        form_layout.addRow("Количество применений сглаживания:", self.smooth_count_entry)
-        form_layout.addRow("Какую часть графика обрабатывать:", self.process_heat_checkbox)
+        form_layout.addRow("Кол-во прим сглаж:", self.smooth_count_entry)
+        form_layout.addRow("Обработать:", self.process_heat_checkbox)
         form_layout.addRow("", self.process_cool_checkbox)
         form_layout.addRow("Тип прибора:", self.device_type_gamma_radio_btn)
         form_layout.addRow("", self.device_type_neutronic_radio_btn)
@@ -93,25 +98,70 @@ class SidePanel(QVBoxLayout):
 
 
     def save_to_docx(self):
+        if self.graph_canvas.is_gamma and self.graph_canvas.is_neutronic:
+            if self.graph_canvas.is_gamma:
+                titles = self.column_data_gamma.near_probe, self.column_data_gamma.far_probe
+                serial_number = '12345'
+                instrument_name = 'GGKP'
+                self.save_to_separate_docx(
+                    self.graph_canvas.gamma_graph_data, 
+                    titles,
+                    process_heat=self.process_heat_checkbox.isChecked(),
+                    process_cool=False,
+                    serial_number=serial_number,
+                    instrument_name=instrument_name
+                )
+                
+            if self.graph_canvas.is_neutronic:
+                titles = self.column_data_neutronic.near_probe, self.column_data_neutronic.far_probe
+                serial_number = '12345'
+                instrument_name = 'NNKT'
+                self.save_to_separate_docx(
+                    self.graph_canvas.neutronic_graph_data, 
+                    titles,
+                    process_heat=False,
+                    process_cool=self.process_cool_checkbox.isChecked(),
+                    serial_number=serial_number,
+                    instrument_name=instrument_name
+                )
+            return
+
+
         if self.graph_canvas.is_gamma:
-            titles = ColumnDataGamma.near_probe, ColumnDataGamma.far_probe
-            self.save_to_separate_docx(self.graph_canvas.gamma_graph_data, titles)
+            titles = self.column_data_gamma.near_probe, self.column_data_gamma.far_probe
+            serial_number = self.graph_canvas.las.well["SNUM"].value
+            instrument_name = self.graph_canvas.las.well["NAME"].value
+            self.save_to_separate_docx(
+                self.graph_canvas.gamma_graph_data, 
+                titles,
+                self.process_heat_checkbox.isChecked(),
+                self.process_cool_checkbox.isChecked(),
+                serial_number,
+                instrument_name
+            )
             
         if self.graph_canvas.is_neutronic:
-            titles = ColumnDataNeutronic.near_probe, ColumnDataNeutronic.far_probe
-            self.save_to_separate_docx(self.graph_canvas.neutronic_graph_data, titles)
+            titles = self.column_data_neutronic.near_probe, self.column_data_neutronic.far_probe
+            serial_number = self.graph_canvas.las.well["SNUM"].value
+            instrument_name = self.graph_canvas.las.well["NAME"].value
+            self.save_to_separate_docx(
+                self.graph_canvas.neutronic_graph_data, 
+                titles,
+                self.process_heat_checkbox.isChecked(),
+                self.process_cool_checkbox.isChecked(),
+                serial_number,
+                instrument_name
+            )
 
-    def save_to_separate_docx(self, data: GraphData, titles):
+    def save_to_separate_docx(self, data: GraphData, titles, process_heat, process_cool, serial_number, instrument_name):
         if self.graph_canvas.las is None:
             return
 
         self.success_label.setText("processing...")
 
         # serial_number = self.graph_canvas.las.well["SNUM"].value
-        serial_number = 'self.graph_canvas.las.well["SNUM"].value'
         date = self.graph_canvas.las.well["DATE"].value
         # instrument_name = self.graph_canvas.las.well["NAME"].value
-        instrument_name = 'self.graph_canvas.las.well["NAME"].value'
 
         description = (serial_number, date, instrument_name)
 
@@ -122,8 +172,8 @@ class SidePanel(QVBoxLayout):
 
         success = save2doc(
             int(self.size_entry.text()),
-            bool(self.process_heat_checkbox.isChecked()),
-            bool(self.process_cool_checkbox.isChecked()),
+            process_heat,
+            process_cool,
             description,
             data,
             titles,

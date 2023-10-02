@@ -1,4 +1,4 @@
-from PyQt5.QtWidgets import QVBoxLayout, QHBoxLayout, QLabel, QSpinBox, QPushButton
+from PyQt5.QtWidgets import QVBoxLayout, QHBoxLayout, QLabel, QSpinBox, QPushButton, QGraphicsScene
 from PyQt5.QtCore import Qt
 
 from matplotlib.figure import Figure
@@ -20,35 +20,64 @@ class GraphCanvas(QVBoxLayout):
         self.column_data_gamma = ColumnDataGamma()
         self.column_data_neutronic = ColumnDataNeutronic()
 
+        ################################# left
         # Создание кнопки "Обрезать"
         self.cut_button = QPushButton("Обрезать")
-        self.cut_button.clicked.connect(self.crop_graphs)
+        self.cut_button.clicked.connect(self.crop_graphs_on_left)
 
         # красная линия
-        self.red_line_label_x = QLabel("X: ")
-        self.red_line_label_y = QLabel("")
-        self.x_red_line_spinbox = QSpinBox()
-        self.x_red_line_spinbox.setMaximum(2147483647)
-        self.x_red_line_spinbox.valueChanged.connect(self.update_red_line)
+        self.red_line_label_x = QLabel("left line X: ")
+        self.left_line_label_y = QLabel("")
+        self.left_line_spinbox_x = QSpinBox()
+        self.left_line_spinbox_x.setMaximum(2147483647)
+        self.left_line_spinbox_x.valueChanged.connect(self.update_left_line)
 
         # layout for spinbox
         spinbox_layout = QHBoxLayout()
         spinbox_layout.setContentsMargins(0, 0, 20, 0)
         spinbox_layout.addWidget(self.red_line_label_x)
-        spinbox_layout.addWidget(self.x_red_line_spinbox)
-        spinbox_layout.addWidget(self.red_line_label_y)
+        spinbox_layout.addWidget(self.left_line_spinbox_x)
+        spinbox_layout.addWidget(self.left_line_label_y)
 
-        btns_layout = QHBoxLayout()
+        left_btns_layout = QHBoxLayout()
         # btns_layout.setAlignment(Qt.AlignmentFlag.AlignLeft)
-        btns_layout.setContentsMargins(20, 0, 0, 0)
-        btns_layout.addLayout(spinbox_layout)
-        btns_layout.addWidget(self.cut_button, 0, Qt.AlignmentFlag.AlignRight)
+        left_btns_layout.setContentsMargins(20, 0, 0, 0)
+        left_btns_layout.addLayout(spinbox_layout)
+        left_btns_layout.addWidget(self.cut_button, 0, Qt.AlignmentFlag.AlignRight)
+
+        ############################## right
+        # Создание кнопки "Обрезать"
+        self.right_cut_button = QPushButton("Обрезать")
+        self.right_cut_button.clicked.connect(self.crop_graphs_on_right)
+
+        # красная линия
+        self.right_line_label_x = QLabel("right line X: ")
+        self.right_line_label_y = QLabel("")
+        self.right_line_spinbox_x = QSpinBox()
+        self.right_line_spinbox_x.setMaximum(2147483647)
+        self.right_line_spinbox_x.valueChanged.connect(self.update_right_line)
+
+        # layout for spinbox
+        right_spinbox_layout = QHBoxLayout()
+        right_spinbox_layout.setContentsMargins(0, 0, 20, 0)
+        right_spinbox_layout.addWidget(self.right_line_label_x)
+        right_spinbox_layout.addWidget(self.right_line_spinbox_x)
+        right_spinbox_layout.addWidget(self.right_line_label_y)
+
+        right_btns_layout = QHBoxLayout()
+        # btns_layout.setAlignment(Qt.AlignmentFlag.AlignLeft)
+        right_btns_layout.setContentsMargins(20, 0, 0, 0)
+        right_btns_layout.addLayout(right_spinbox_layout)
+        right_btns_layout.addWidget(self.right_cut_button, 0, Qt.AlignmentFlag.AlignRight)
 
         # Создаем виджет Matplotlib для вывода графиков
         self.canvas = FigureCanvas(Figure(figsize=(16, 16)))
+        # self.scene = QGraphicsScene()
+        # self.view = self.scene.addWidget(self.canvas)
 
-        self.addLayout(btns_layout)
         self.addWidget(self.canvas)
+        self.addLayout(left_btns_layout)
+        self.addLayout(right_btns_layout)
 
         self.las = None
 
@@ -65,10 +94,14 @@ class GraphCanvas(QVBoxLayout):
         self.col_num = []
 
         # Создание красной вертикальной линии
-        self.spinbox_max_value = 2147483647
-        self.red_line = []
-        self.move_x = 0
-        self.dragging = False
+        self.left_spinbox_max_value = 2147483647
+        self.right_spinbox_max_value = 2147483647
+        self.left_line = []
+        self.right_line = []
+        self.left_vline_x = 0
+        self.right_vline_x = 0
+        self.left_dragging = False
+        self.right_dragging = False
 
     
     def set_las(self, las: LASFile):
@@ -94,21 +127,38 @@ class GraphCanvas(QVBoxLayout):
     def on_mouse_press(self, event):
         if event.button == 1 and event.xdata is not None:  # Проверяем, что нажата левая кнопка мыши
             # print("press", int(event.xdata))
-            self.dragging = True
+            self.left_dragging = True
 
-            self.move_x = int(event.xdata)
-            self.x_red_line_spinbox.setValue(self.move_x)
+            self.left_vline_x = int(event.xdata)
+            self.left_line_spinbox_x.setValue(self.left_vline_x)
+
+        if event.button == 3 and event.xdata is not None:  # Проверяем, что нажата левая кнопка мыши
+            # print("press", int(event.xdata))
+            self.right_dragging = True
+
+            self.right_vline_x = int(event.xdata)
+            self.right_line_spinbox_x.setValue(self.right_vline_x)
 
     def on_mouse_move(self, event):
-        if self.dragging and event.xdata is not None:
+        if self.left_dragging and event.xdata is not None:
             # print("move xdata", int(event.xdata))
 
-            self.move_x = int(event.xdata)
-            self.x_red_line_spinbox.setValue(self.move_x)
+            self.left_vline_x = int(event.xdata)
+            self.left_line_spinbox_x.setValue(self.left_vline_x)
+
+        if self.right_dragging and event.xdata is not None:
+            # print("move xdata", int(event.xdata))
+
+            self.right_vline_x = int(event.xdata)
+            self.right_line_spinbox_x.setValue(self.right_vline_x)
 
     def on_mouse_release(self, event):
-        if self.dragging:
-            self.dragging = False
+        if self.left_dragging:
+            self.left_dragging = False
+            # print("release", int(event.xdata))
+
+        if self.right_dragging:
+            self.right_dragging = False
             # print("release", int(event.xdata))
 
     def create_figure(self, col_num):
@@ -169,25 +219,51 @@ class GraphCanvas(QVBoxLayout):
             for ax in self.axes:
                 ax.clear()
 
-    def crop_data(self):
+    def crop_data_on_left(self):
         if self.is_gamma:
-            self.gamma_graph_data.near_probe = self.gamma_graph_data.near_probe[self.move_x:]
-            self.gamma_graph_data.far_probe = self.gamma_graph_data.far_probe[self.move_x:]
-            self.gamma_graph_data.far_on_near_probe = self.gamma_graph_data.far_on_near_probe[self.move_x:]
-            self.gamma_graph_data.temper = self.gamma_graph_data.temper[self.move_x:]
-            self.gamma_graph_data.time = self.gamma_graph_data.time[self.move_x:]
-            self.spinbox_max_value = len(self.gamma_graph_data.near_probe) - 1
+            self.gamma_graph_data.near_probe = self.gamma_graph_data.near_probe[self.left_vline_x:]
+            self.gamma_graph_data.far_probe = self.gamma_graph_data.far_probe[self.left_vline_x:]
+            self.gamma_graph_data.far_on_near_probe = self.gamma_graph_data.far_on_near_probe[self.left_vline_x:]
+            self.gamma_graph_data.temper = self.gamma_graph_data.temper[self.left_vline_x:]
+            self.gamma_graph_data.time = self.gamma_graph_data.time[self.left_vline_x:]
+            if len(self.gamma_graph_data.near_probe) - 1 > self.right_spinbox_max_value:
+                self.left_spinbox_max_value = self.right_spinbox_max_value
+            else:
+                self.left_spinbox_max_value = len(self.gamma_graph_data.near_probe) - 1
+            self.right_spinbox_max_value = len(self.gamma_graph_data.near_probe) - 1
+
 
         if self.is_neutronic:
-            self.neutronic_graph_data.near_probe = self.neutronic_graph_data.near_probe[self.move_x:]
-            self.neutronic_graph_data.far_probe = self.neutronic_graph_data.far_probe[self.move_x:]
-            self.neutronic_graph_data.far_on_near_probe = self.neutronic_graph_data.far_on_near_probe[self.move_x:]
-            self.neutronic_graph_data.temper = self.neutronic_graph_data.temper[self.move_x:]
-            self.neutronic_graph_data.time = self.neutronic_graph_data.time[self.move_x:]
-            self.spinbox_max_value = len(self.neutronic_graph_data.near_probe) - 1
+            self.neutronic_graph_data.near_probe = self.neutronic_graph_data.near_probe[self.left_vline_x:]
+            self.neutronic_graph_data.far_probe = self.neutronic_graph_data.far_probe[self.left_vline_x:]
+            self.neutronic_graph_data.far_on_near_probe = self.neutronic_graph_data.far_on_near_probe[self.left_vline_x:]
+            self.neutronic_graph_data.temper = self.neutronic_graph_data.temper[self.left_vline_x:]
+            self.neutronic_graph_data.time = self.neutronic_graph_data.time[self.left_vline_x:]
+            if len(self.neutronic_graph_data.near_probe) - 1 > self.right_spinbox_max_value:
+                self.left_spinbox_max_value = self.right_spinbox_max_value
+            else:
+                self.left_spinbox_max_value = len(self.neutronic_graph_data.near_probe) - 1
+            self.right_spinbox_max_value = len(self.gamma_graph_data.near_probe) - 1
+
+    def crop_data_on_right(self):
+        if self.is_gamma:
+            self.gamma_graph_data.near_probe = self.gamma_graph_data.near_probe[:self.right_vline_x + 1]
+            self.gamma_graph_data.far_probe = self.gamma_graph_data.far_probe[:self.right_vline_x + 1]
+            self.gamma_graph_data.far_on_near_probe = self.gamma_graph_data.far_on_near_probe[:self.right_vline_x + 1]
+            self.gamma_graph_data.temper = self.gamma_graph_data.temper[:self.right_vline_x + 1]
+            self.gamma_graph_data.time = self.gamma_graph_data.time[:self.right_vline_x + 1]
+            self.right_spinbox_max_value = len(self.gamma_graph_data.near_probe) - 1
+
+        if self.is_neutronic:
+            self.neutronic_graph_data.near_probe = self.neutronic_graph_data.near_probe[:self.right_vline_x + 1]
+            self.neutronic_graph_data.far_probe = self.neutronic_graph_data.far_probe[:self.right_vline_x + 1]
+            self.neutronic_graph_data.far_on_near_probe = self.neutronic_graph_data.far_on_near_probe[:self.right_vline_x + 1]
+            self.neutronic_graph_data.temper = self.neutronic_graph_data.temper[:self.right_vline_x + 1]
+            self.neutronic_graph_data.time = self.neutronic_graph_data.time[:self.right_vline_x + 1]
+            self.right_spinbox_max_value = len(self.neutronic_graph_data.near_probe) - 1
 
 
-    def update_red_line_label(self, line_pos_x):
+    def update_left_line_label(self, line_pos_x):
         label_text = ''
         if self.is_gamma:
             NEAR_PROBE_Y = int(np.round(self.gamma_graph_data.near_probe[line_pos_x]))
@@ -201,56 +277,119 @@ class GraphCanvas(QVBoxLayout):
             FAR_ON_NEAR_PROBE_Y = np.round(self.neutronic_graph_data.far_on_near_probe[line_pos_x], 3)
             TEMPER_Y = int(self.neutronic_graph_data.temper[line_pos_x])
             label_text = label_text + f'\t{self.column_data_neutronic.near_probe} Y: {NEAR_PROBE_Y}\t{self.column_data_neutronic.far_probe} Y: {FAR_PROBE_Y}\t{self.column_data_neutronic.far_probe}/{self.column_data_neutronic.near_probe} Y: {FAR_ON_NEAR_PROBE_Y}\tTEMPER Y: {TEMPER_Y}'
-        self.red_line_label_y.setText(label_text)
+        self.left_line_label_y.setText(label_text)
+
+    def update_right_line_label(self, line_pos_x):
+        label_text = ''
+        if self.is_gamma:
+            NEAR_PROBE_Y = int(np.round(self.gamma_graph_data.near_probe[line_pos_x]))
+            FAR_PROBE_Y = int(np.round(self.gamma_graph_data.far_probe[line_pos_x]))
+            FAR_ON_NEAR_PROBE_Y = np.round(self.gamma_graph_data.far_on_near_probe[line_pos_x], 3)
+            TEMPER_Y = int(self.gamma_graph_data.temper[line_pos_x])
+            label_text = f'\t{self.column_data_gamma.near_probe} Y: {NEAR_PROBE_Y}\t{self.column_data_gamma.far_probe} Y: {FAR_PROBE_Y}\t{self.column_data_gamma.far_probe}/{self.column_data_gamma.near_probe} Y: {FAR_ON_NEAR_PROBE_Y}\tTEMPER Y: {TEMPER_Y}'
+        if self.is_neutronic:
+            NEAR_PROBE_Y = int(np.round(self.neutronic_graph_data.near_probe[line_pos_x]))
+            FAR_PROBE_Y = int(np.round(self.neutronic_graph_data.far_probe[line_pos_x]))
+            FAR_ON_NEAR_PROBE_Y = np.round(self.neutronic_graph_data.far_on_near_probe[line_pos_x], 3)
+            TEMPER_Y = int(self.neutronic_graph_data.temper[line_pos_x])
+            label_text = label_text + f'\t{self.column_data_neutronic.near_probe} Y: {NEAR_PROBE_Y}\t{self.column_data_neutronic.far_probe} Y: {FAR_PROBE_Y}\t{self.column_data_neutronic.far_probe}/{self.column_data_neutronic.near_probe} Y: {FAR_ON_NEAR_PROBE_Y}\tTEMPER Y: {TEMPER_Y}'
+        self.right_line_label_y.setText(label_text)
         
 
-    def ensure_red_line_created(self):
+    def ensure_left_line_created(self):
         if self.col_num == 2:
             for col_axes in self.axes:
                 for ax in col_axes:
-                    self.red_line.append(ax.axvline(0, color='red'))
+                    self.left_line.append(ax.axvline(0, color='red'))
         else:
             for ax in self.axes:
-                self.red_line.append(ax.axvline(0, color='red'))
-
+                self.left_line.append(ax.axvline(0, color='red'))
 
         # if len(self.red_line) == 0:
         #     for ax in self.axes:
         #         self.red_line.append(ax.axvline(0, color='red'))
 
-    def draw_red_line(self):
+    def ensure_right_line_created(self):
+        if self.col_num == 2:
+            for col_axes in self.axes:
+                for ax in col_axes:
+                    self.right_line.append(ax.axvline(0, color='blue'))
+        else:
+            for ax in self.axes:
+                self.right_line.append(ax.axvline(0, color='blue'))
+
+        # if len(self.red_line) == 0:
+        #     for ax in self.axes:
+        #         self.red_line.append(ax.axvline(0, color='red'))
+
+    def draw_left_line(self):
         if self.col_num == 2:
             i = 0
             for col_axes in self.axes:
                 for ax in col_axes:
-                    self.red_line[i].remove()
-                    self.red_line[i] = ax.axvline(self.move_x, color='red')
+                    self.left_line[i].remove()
+                    self.left_line[i] = ax.axvline(self.left_vline_x, color='red')
                     i += 1
         else:
             for i, ax in enumerate(self.axes):
-                self.red_line[i].remove()
-                self.red_line[i] = ax.axvline(self.move_x, color='red')
+                self.left_line[i].remove()
+                self.left_line[i] = ax.axvline(self.left_vline_x, color='red')
 
         # for i, ax in enumerate(self.axes):
         #     self.red_line[i].remove()
         #     self.red_line[i] = ax.axvline(self.move_x, color='red')
         self.canvas.draw()
 
-    def update_red_line(self, new_value):
+    def draw_right_line(self):
+        if self.col_num == 2:
+            i = 0
+            for col_axes in self.axes:
+                for ax in col_axes:
+                    self.right_line[i].remove()
+                    self.right_line[i] = ax.axvline(self.right_vline_x, color='blue')
+                    i += 1
+        else:
+            for i, ax in enumerate(self.axes):
+                self.right_line[i].remove()
+                self.right_line[i] = ax.axvline(self.right_vline_x, color='blue')
+
+        # for i, ax in enumerate(self.axes):
+        #     self.red_line[i].remove()
+        #     self.red_line[i] = ax.axvline(self.move_x, color='red')
+        self.canvas.draw()
+
+    def update_left_line(self, new_value):
         if self.axes is None:
             return
         
-        if self.spinbox_max_value + 1 < new_value:
-            new_value = self.spinbox_max_value + 1
+        # todo: limits for left and right spinbox
+        if self.left_spinbox_max_value + 1 < new_value:
+            new_value = self.left_spinbox_max_value + 1
 
         if new_value < 0:
             new_value = 0
         
-        self.move_x = new_value
+        self.left_vline_x = new_value
         
-        self.update_red_line_label(self.move_x)
+        self.update_left_line_label(self.left_vline_x)
 
-        self.draw_red_line()
+        self.draw_left_line()
+
+    def update_right_line(self, new_value):
+        if self.axes is None:
+            return
+        
+        if self.right_spinbox_max_value + 1 < new_value:
+            new_value = self.right_spinbox_max_value + 1
+
+        if new_value < 0:
+            new_value = 0
+        
+        self.right_vline_x = new_value
+        
+        self.update_right_line_label(self.right_vline_x)
+
+        self.draw_right_line()
 
 
     def update_graphs(self):
@@ -299,18 +438,21 @@ class GraphCanvas(QVBoxLayout):
     def calc_data(self):
         if self.is_gamma:
             self.gamma_graph_data = self.smooth_graph(self.gamma_graph_data)
-            self.spinbox_max_value = len(self.gamma_graph_data.near_probe) - 1
+            self.left_spinbox_max_value = len(self.gamma_graph_data.near_probe) - 1
+            self.right_spinbox_max_value = len(self.gamma_graph_data.near_probe) - 1
         
         if self.is_neutronic:
             self.neutronic_graph_data = self.smooth_graph(self.neutronic_graph_data)
-            self.spinbox_max_value = len(self.neutronic_graph_data.near_probe) - 1
+            self.left_spinbox_max_value = len(self.neutronic_graph_data.near_probe) - 1
+            self.right_spinbox_max_value = len(self.neutronic_graph_data.near_probe) - 1
 
     def plot_graphs(self):
         if self.las is None:
             return
         
         self.ensure_figure_created()
-        self.ensure_red_line_created()
+        self.ensure_left_line_created()
+        self.ensure_right_line_created()
         
         self.clear_graphs()
         
@@ -318,27 +460,59 @@ class GraphCanvas(QVBoxLayout):
         self.calc_data()
 
         self.update_graphs()
+        
+        self.left_line_spinbox_x.setMaximum(self.left_spinbox_max_value)
+        self.left_line_spinbox_x.setValue(0)
+        if self.left_vline_x == 0:
+            self.draw_left_line()
 
-        self.x_red_line_spinbox.setMaximum(self.spinbox_max_value)
-        self.x_red_line_spinbox.setValue(0)
-        if self.move_x == 0:
-            self.draw_red_line()
+        self.right_line_spinbox_x.setMaximum(self.right_spinbox_max_value)
+        self.right_line_spinbox_x.setValue(self.right_spinbox_max_value)
+        if self.right_vline_x == self.right_spinbox_max_value:
+            self.draw_left_line()
 
         self.canvas.draw()
 
-    def crop_graphs(self):
+    def crop_graphs_on_left(self):
         if self.las is None:
             return
         
         self.clear_graphs()
 
-        self.crop_data()
+        self.crop_data_on_left()
 
         self.update_graphs()
 
-        self.x_red_line_spinbox.setMaximum(self.spinbox_max_value)
-        self.x_red_line_spinbox.setValue(0)
-        if self.move_x == 0:
-            self.draw_red_line()
+        self.left_line_spinbox_x.setMaximum(self.left_spinbox_max_value)
+        self.left_line_spinbox_x.setValue(0)
+        if self.left_vline_x == 0 or self.right_vline_x == self.right_spinbox_max_value:
+            self.draw_left_line()
+            
+        self.right_line_spinbox_x.setMaximum(self.right_spinbox_max_value)
+        self.right_line_spinbox_x.setValue(self.right_spinbox_max_value)
+        if self.right_vline_x == self.right_spinbox_max_value:
+            self.draw_left_line()
+
+        self.canvas.draw()
+
+    def crop_graphs_on_right(self):
+        if self.las is None:
+            return
+        
+        self.clear_graphs()
+
+        self.crop_data_on_right()
+
+        self.update_graphs()
+
+        self.left_line_spinbox_x.setMaximum(self.right_spinbox_max_value)
+        self.left_line_spinbox_x.setValue(0)
+        if self.left_vline_x == 0:
+            self.draw_right_line()
+
+        self.right_line_spinbox_x.setMaximum(self.right_spinbox_max_value)
+        self.right_line_spinbox_x.setValue(self.right_spinbox_max_value)
+        if self.right_vline_x == self.right_spinbox_max_value:
+            self.draw_left_line()
 
         self.canvas.draw()

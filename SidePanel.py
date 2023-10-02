@@ -51,7 +51,7 @@ class SidePanel(QVBoxLayout):
         form_layout.addRow("Кол-во прим сглаж:", self.smooth_count_entry)
         form_layout.addRow("Обработать:", self.process_heat_checkbox)
         form_layout.addRow("", self.process_cool_checkbox)
-        form_layout.addRow("Тип прибора:", self.device_type_gamma_radio_btn)
+        form_layout.addRow("Какие данные сохранить:", self.device_type_gamma_radio_btn)
         form_layout.addRow("", self.device_type_neutronic_radio_btn)
         self.addLayout(form_layout)
 
@@ -99,7 +99,7 @@ class SidePanel(QVBoxLayout):
 
     def save_to_docx(self):
         if self.graph_canvas.is_gamma and self.graph_canvas.is_neutronic:
-            if self.graph_canvas.is_gamma:
+            if self.device_type_gamma_radio_btn.isChecked():
                 titles = self.column_data_gamma.near_probe, self.column_data_gamma.far_probe
                 serial_number = '12345'
                 instrument_name = 'GGKP'
@@ -112,7 +112,7 @@ class SidePanel(QVBoxLayout):
                     instrument_name=instrument_name
                 )
                 
-            if self.graph_canvas.is_neutronic:
+            if self.device_type_neutronic_radio_btn.isChecked():
                 titles = self.column_data_neutronic.near_probe, self.column_data_neutronic.far_probe
                 serial_number = '12345'
                 instrument_name = 'NNKT'

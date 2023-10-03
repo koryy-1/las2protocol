@@ -26,7 +26,7 @@ class GraphCanvas(QVBoxLayout):
         self.cut_button.clicked.connect(self.crop_graphs_on_left)
 
         # красная линия
-        self.red_line_label_x = QLabel("left line X: ")
+        self.red_line_label_x = QLabel("Левая линия X: ")
         self.left_line_label_y = QLabel("")
         self.left_line_spinbox_x = QSpinBox()
         self.left_line_spinbox_x.setMaximum(2147483647)
@@ -51,7 +51,7 @@ class GraphCanvas(QVBoxLayout):
         self.right_cut_button.clicked.connect(self.crop_graphs_on_right)
 
         # красная линия
-        self.right_line_label_x = QLabel("right line X: ")
+        self.right_line_label_x = QLabel("Правая линия line X: ")
         self.right_line_label_y = QLabel("")
         self.right_line_spinbox_x = QSpinBox()
         self.right_line_spinbox_x.setMaximum(2147483647)

@@ -65,7 +65,7 @@ class SidePanel(QVBoxLayout):
         self.addWidget(self.file_path_label)
 
         # Кнопка построения графиков
-        self.plot_button = QPushButton("Построить графики")
+        self.plot_button = QPushButton("Перестроить графики")
         self.plot_button.clicked.connect(self.graph_canvas.plot_graphs)
         self.addWidget(self.plot_button)
 

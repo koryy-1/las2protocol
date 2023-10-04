@@ -2,7 +2,7 @@ from PyQt5.QtWidgets import QMainWindow, QWidget, QVBoxLayout, QHBoxLayout
 from PyQt5.QtCore import Qt
 
 from SidePanel import SidePanel
-from GraphCanvas import GraphCanvas
+from graph_layout.GraphCanvas import GraphCanvas
 
 class LASFileAnalyzer(QMainWindow):
     def __init__(self):

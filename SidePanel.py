@@ -2,7 +2,7 @@ from PyQt5.QtWidgets import QVBoxLayout, QFormLayout, QFileDialog, QLabel, QChec
 from PyQt5.QtCore import Qt
 import lasio
 
-from GraphCanvas import GraphCanvas
+from graph_layout.GraphCanvas import GraphCanvas
 from models.ColumnData import ColumnDataGamma, ColumnDataNeutronic
 from models.GraphData import GraphData
 from process_sample import save2doc

@@ -1,9 +1,10 @@
-from PyQt5.QtWidgets import QVBoxLayout, QHBoxLayout, QLabel, QSpinBox, QPushButton, QGraphicsScene
+from PyQt5.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton, QGraphicsScene
 from PyQt5.QtCore import Qt
 
 from matplotlib.figure import Figure
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 import matplotlib.pyplot as plt
+from matplotlib.gridspec import GridSpec
 import numpy as np
 from lasio import LASFile
 from typing import Type
@@ -27,11 +28,17 @@ class GraphCanvas(QVBoxLayout):
         self.right_tool_box = ToolBox("Правая", self.crop_graphs_on_right, self.update_right_line)
 
         # Создаем виджет Matplotlib для вывода графиков
-        self.canvas = FigureCanvas(Figure(figsize=(16, 16)))
+        self.gamma_canvas = FigureCanvas(Figure(figsize=(8, 16)))
+        self.neutronic_canvas = FigureCanvas(Figure(figsize=(8, 16)))
         # self.scene = QGraphicsScene()
         # self.view = self.scene.addWidget(self.canvas)
 
-        self.addWidget(self.canvas)
+        self.canvas_layout = QHBoxLayout()
+        self.canvas_layout.addWidget(self.gamma_canvas)
+        self.canvas_layout.addWidget(self.neutronic_canvas)
+        self.canvas_layout.widget()
+
+        self.addLayout(self.canvas_layout)
         self.addLayout(self.left_tool_box)
         self.addLayout(self.right_tool_box)
 
@@ -47,7 +54,6 @@ class GraphCanvas(QVBoxLayout):
         self.smooth_count_entry = 0
         
         self.axes = []
-        self.col_num = []
 
         # Создание красной вертикальной линии
         self.left_line = []
@@ -79,60 +85,51 @@ class GraphCanvas(QVBoxLayout):
 
 
     def on_mouse_press(self, event):
-        if event.button == 1 and event.xdata is not None:  # Проверяем, что нажата левая кнопка мыши
-            # print("press", int(event.xdata))
-            self.left_dragging = True
-
-            self.left_vline_x = int(event.xdata)
-            self.left_tool_box.line_spinbox_x.setValue(self.left_vline_x)
-
-        if event.button == 3 and event.xdata is not None:  # Проверяем, что нажата левая кнопка мыши
-            # print("press", int(event.xdata))
-            self.right_dragging = True
-
-            self.right_vline_x = int(event.xdata)
-            self.right_tool_box.line_spinbox_x.setValue(self.right_vline_x)
+        if self.is_gamma:
+            pass
+        if self.is_neutronic:
+            pass
 
     def on_mouse_move(self, event):
-        if self.left_dragging and event.xdata is not None:
-            # print("move xdata", int(event.xdata))
-
-            self.left_vline_x = int(event.xdata)
-            self.left_tool_box.line_spinbox_x.setValue(self.left_vline_x)
-
-        if self.right_dragging and event.xdata is not None:
-            # print("move xdata", int(event.xdata))
-
-            self.right_vline_x = int(event.xdata)
-            self.right_tool_box.line_spinbox_x.setValue(self.right_vline_x)
+        if self.is_gamma:
+            pass
+        if self.is_neutronic:
+            pass
 
     def on_mouse_release(self, event):
-        if self.left_dragging:
-            self.left_dragging = False
-            # print("release", int(event.xdata))
+        if self.is_gamma:
+            pass
+        if self.is_neutronic:
+            pass
+        
+    def create_figure(self, canvas_width):
+        # self.gamma_canvas.figure, _ = plt.subplots(4, figsize=(0, 0))
+        # self.neutronic_canvas.figure, _ = plt.subplots(4, figsize=(0, 0))
 
-        if self.right_dragging:
-            self.right_dragging = False
-            # print("release", int(event.xdata))
-
-    def create_figure(self, col_num):
-        fig, self.axes = plt.subplots(4, col_num, figsize=(8, 6))
-        # print(self.axes)
-
-        fig.canvas.mpl_connect('button_press_event', self.on_mouse_press)
-        fig.canvas.mpl_connect('motion_notify_event', self.on_mouse_move)
-        fig.canvas.mpl_connect('button_release_event', self.on_mouse_release)
-
-        self.canvas.figure = fig
+        if self.is_gamma:
+            fig, self.axes = plt.subplots(4, figsize=(8 * canvas_width, 16))
+            print(self.axes)
+            fig.canvas.mpl_connect('button_press_event', self.on_mouse_press)
+            fig.canvas.mpl_connect('motion_notify_event', self.on_mouse_move)
+            fig.canvas.mpl_connect('button_release_event', self.on_mouse_release)
+            self.gamma_canvas = FigureCanvas(fig)
+            self.gamma_canvas.draw()
+        if self.is_neutronic:
+            fig, self.axes = plt.subplots(4, figsize=(8 * canvas_width, 16))
+            fig.canvas.mpl_connect('button_press_event', self.on_mouse_press)
+            fig.canvas.mpl_connect('motion_notify_event', self.on_mouse_move)
+            fig.canvas.mpl_connect('button_release_event', self.on_mouse_release)
+            self.neutronic_canvas = FigureCanvas(fig)
+            self.neutronic_canvas.draw()
 
     def ensure_figure_created(self):
         # if len(self.axes) == 0:
         if self.is_gamma and self.is_neutronic:
-            self.col_num = 2
+            self.canvas_width = 1
         else:
-            self.col_num = 1
+            self.canvas_width = 2
 
-        self.create_figure(self.col_num)
+        self.create_figure(self.canvas_width)
 
 
     def get_data_from_las(self):
@@ -233,14 +230,14 @@ class GraphCanvas(QVBoxLayout):
             self.left_line[i].remove()
             self.left_line[i] = ax.axvline(self.left_vline_x, color='red')
 
-        self.canvas.draw()
+        self.gamma_canvas.draw()
 
     def draw_right_line(self):
         for i, ax in enumerate(self.axes.flat):
             self.right_line[i].remove()
             self.right_line[i] = ax.axvline(self.right_vline_x, color='blue')
 
-        self.canvas.draw()
+        self.gamma_canvas.draw()
 
     def update_left_line(self, new_value):
         if self.axes is None:
@@ -255,7 +252,7 @@ class GraphCanvas(QVBoxLayout):
         
         self.left_vline_x = new_value
         
-        self.update_left_line_label(self.left_vline_x)
+        # self.update_left_line_label(self.left_vline_x)
 
         self.draw_left_line()
 
@@ -271,7 +268,7 @@ class GraphCanvas(QVBoxLayout):
         
         self.right_vline_x = new_value
         
-        self.update_right_line_label(self.right_vline_x)
+        # self.update_right_line_label(self.right_vline_x)
 
         self.draw_right_line()
 
@@ -357,7 +354,7 @@ class GraphCanvas(QVBoxLayout):
         if self.right_vline_x == self.right_spinbox_max_value:
             self.draw_left_line()
 
-        self.canvas.draw()
+        self.gamma_canvas.draw()
 
     def crop_graphs_on_left(self):
         if self.las is None:
@@ -379,7 +376,7 @@ class GraphCanvas(QVBoxLayout):
         if self.right_vline_x == self.right_spinbox_max_value:
             self.draw_left_line()
 
-        self.canvas.draw()
+        self.gamma_canvas.draw()
 
     def crop_graphs_on_right(self):
         if self.las is None:
@@ -401,4 +398,4 @@ class GraphCanvas(QVBoxLayout):
         if self.right_vline_x == self.right_spinbox_max_value:
             self.draw_left_line()
 
-        self.canvas.draw()
+        self.gamma_canvas.draw()

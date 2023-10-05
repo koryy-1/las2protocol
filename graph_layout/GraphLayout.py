@@ -17,8 +17,8 @@ class GraphLayout(QHBoxLayout):
 
         self.gamma_graph_canvas = GraphCanvas(self.column_data_gamma)
         self.neutronic_graph_canvas = GraphCanvas(self.column_data_neutronic)
-        self.addLayout(self.gamma_graph_canvas)
-        self.addLayout(self.neutronic_graph_canvas)
+        self.addWidget(self.gamma_graph_canvas)
+        self.addWidget(self.neutronic_graph_canvas)
 
         self.is_gamma = False
         self.is_neutronic = False

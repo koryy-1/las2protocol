@@ -1,20 +1,19 @@
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton, QGraphicsScene
 from PyQt5.QtCore import Qt
+from matplotlib.axes import Axes
 
 from matplotlib.figure import Figure
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
-import matplotlib.pyplot as plt
 import numpy as np
 from lasio import LASFile
 from typing import Type
 
-from graph_creator import create_graph_on_canvas
 from models.ColumnData import AbstractColumnData, ColumnDataGamma, ColumnDataNeutronic
 from models.GraphData import GraphData
 from utils import smoothing_function
 from graph_layout.ToolBox import ToolBox
 
-class GraphCanvas(QVBoxLayout):
+class GraphCanvas(QWidget):
     def __init__(self, column_data: AbstractColumnData):
         super().__init__()
 
@@ -26,14 +25,16 @@ class GraphCanvas(QVBoxLayout):
         self.right_tool_box = ToolBox("Правая", self.crop_graphs_on_right, self.update_right_line)
 
         # Создаем виджет Matplotlib для вывода графиков
-        # self.canvas = FigureCanvas(Figure(figsize=(8, 16)))
-        self.canvas = FigureCanvas(Figure(figsize=(8, 16)))
+        self.figure = Figure(figsize=(8, 16))
+        self.canvas = FigureCanvas(self.figure)
         # self.scene = QGraphicsScene()
         # self.view = self.scene.addWidget(self.canvas)
 
-        self.addWidget(self.canvas)
-        self.addLayout(self.left_tool_box)
-        self.addLayout(self.right_tool_box)
+        layout = QVBoxLayout()
+        layout.addWidget(self.canvas)
+        layout.addLayout(self.left_tool_box)
+        layout.addLayout(self.right_tool_box)
+        self.setLayout(layout)
 
         self.las = None
 
@@ -43,7 +44,7 @@ class GraphCanvas(QVBoxLayout):
         self.size_entry = 0
         self.smooth_count_entry = 0
         
-        self.axes = []
+        self.axes: np.flatiter[np.ndarray] = []
 
         # Создание красной вертикальной линии
         self.left_line = []
@@ -102,11 +103,14 @@ class GraphCanvas(QVBoxLayout):
             # print("release", int(event.xdata))
         
     def create_figure(self):
-        fig, self.axes = plt.subplots(4, figsize=(4, 8))
-        fig.canvas.mpl_connect('button_press_event', self.on_mouse_press)
-        fig.canvas.mpl_connect('motion_notify_event', self.on_mouse_move)
-        fig.canvas.mpl_connect('button_release_event', self.on_mouse_release)
-        self.canvas.figure = fig
+        self.fig = Figure(figsize=(4, 8))
+        self.axes = []
+        for i in range(4):
+            self.axes.append(self.fig.add_subplot(4, 1, i + 1))
+        self.fig.canvas.mpl_connect('button_press_event', self.on_mouse_press)
+        self.fig.canvas.mpl_connect('motion_notify_event', self.on_mouse_move)
+        self.fig.canvas.mpl_connect('button_release_event', self.on_mouse_release)
+        self.canvas.figure = self.fig
         self.canvas.draw()
 
     def ensure_figure_created(self):
@@ -115,11 +119,11 @@ class GraphCanvas(QVBoxLayout):
         self.create_figure()
 
     def clear(self):
-        if self.axes is not None:
-            fig = plt.figure(figsize=(4, 8))
-            self.canvas.figure = fig
-            self.graph_data = None
-            self.clear_graphs()
+        if len(self.axes) > 0:
+            print(self.column_data.near_probe)
+            self.figure.clear()
+            # self.clear_graphs()
+            self.canvas.draw()
 
     def clear_graphs(self):
         for ax in self.axes:
@@ -180,7 +184,7 @@ class GraphCanvas(QVBoxLayout):
 
 
     def ensure_left_line_created(self):
-        for ax in self.axes.flat:
+        for ax in self.axes:
             self.left_line.append(ax.axvline(0, color='red'))
 
         # if len(self.red_line) == 0:
@@ -188,7 +192,7 @@ class GraphCanvas(QVBoxLayout):
         #         self.red_line.append(ax.axvline(0, color='red'))
 
     def ensure_right_line_created(self):
-        for ax in self.axes.flat:
+        for ax in self.axes:
             self.right_line.append(ax.axvline(0, color='blue'))
 
         # if len(self.red_line) == 0:
@@ -196,14 +200,14 @@ class GraphCanvas(QVBoxLayout):
         #         self.red_line.append(ax.axvline(0, color='red'))
 
     def draw_left_line(self):
-        for i, ax in enumerate(self.axes.flat):
+        for i, ax in enumerate(self.axes):
             self.left_line[i].remove()
             self.left_line[i] = ax.axvline(self.left_vline_x, color='red')
 
         self.canvas.draw()
 
     def draw_right_line(self):
-        for i, ax in enumerate(self.axes.flat):
+        for i, ax in enumerate(self.axes):
             self.right_line[i].remove()
             self.right_line[i] = ax.axvline(self.right_vline_x, color='blue')
 
@@ -244,10 +248,18 @@ class GraphCanvas(QVBoxLayout):
 
 
     def update_graphs(self):
-        create_graph_on_canvas(self.axes[0], self.graph_data.time, self.graph_data.near_probe, f"{self.column_data.near_probe}_1")
-        create_graph_on_canvas(self.axes[1], self.graph_data.time, self.graph_data.far_probe, f"{self.column_data.far_probe}_1")
-        create_graph_on_canvas(self.axes[2], self.graph_data.time, self.graph_data.far_on_near_probe, f"{self.column_data.far_probe}/{self.column_data.near_probe}")
-        create_graph_on_canvas(self.axes[3], self.graph_data.time, self.graph_data.temper, "TEMPER")
+        self.create_graph_on_canvas(self.axes[0], self.graph_data.time, self.graph_data.near_probe, f"{self.column_data.near_probe}_1")
+        self.create_graph_on_canvas(self.axes[1], self.graph_data.time, self.graph_data.far_probe, f"{self.column_data.far_probe}_1")
+        self.create_graph_on_canvas(self.axes[2], self.graph_data.time, self.graph_data.far_on_near_probe, f"{self.column_data.far_probe}/{self.column_data.near_probe}")
+        self.create_graph_on_canvas(self.axes[3], self.graph_data.time, self.graph_data.temper, "TEMPER")
+
+    def create_graph_on_canvas(self, ax: Axes, x, y, plot_title: str):
+        # print(plot_title, y)
+        ax.grid(True)
+        ax.plot(y, label=plot_title)
+        ax.set_ylim(y[np.isfinite(y)].min() * 0.9, y[np.isfinite(y)].max() * 1.1)
+        ax.set_xlim(-(len(x) * 0.02), len(x) * 1.23)
+        ax.legend(loc='right')
 
 
     def smooth_graph(self, graph_data: GraphData) -> GraphData:

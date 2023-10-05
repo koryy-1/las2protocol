@@ -4,7 +4,6 @@ from PyQt5.QtCore import Qt
 from matplotlib.figure import Figure
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 import matplotlib.pyplot as plt
-from matplotlib.gridspec import GridSpec
 import numpy as np
 from lasio import LASFile
 from typing import Type
@@ -16,11 +15,10 @@ from utils import smoothing_function
 from graph_layout.ToolBox import ToolBox
 
 class GraphCanvas(QVBoxLayout):
-    def __init__(self):
+    def __init__(self, column_data: AbstractColumnData):
         super().__init__()
 
-        self.column_data_gamma = ColumnDataGamma()
-        self.column_data_neutronic = ColumnDataNeutronic()
+        self.column_data = column_data
 
         # panels for control vert lines
         self.left_tool_box = ToolBox("Левая", self.crop_graphs_on_left, self.update_left_line)
@@ -28,27 +26,19 @@ class GraphCanvas(QVBoxLayout):
         self.right_tool_box = ToolBox("Правая", self.crop_graphs_on_right, self.update_right_line)
 
         # Создаем виджет Matplotlib для вывода графиков
-        self.gamma_canvas = FigureCanvas(Figure(figsize=(8, 16)))
-        self.neutronic_canvas = FigureCanvas(Figure(figsize=(8, 16)))
+        # self.canvas = FigureCanvas(Figure(figsize=(8, 16)))
+        self.canvas = FigureCanvas(Figure(figsize=(8, 16)))
         # self.scene = QGraphicsScene()
         # self.view = self.scene.addWidget(self.canvas)
 
-        self.canvas_layout = QHBoxLayout()
-        self.canvas_layout.addWidget(self.gamma_canvas)
-        self.canvas_layout.addWidget(self.neutronic_canvas)
-        self.canvas_layout.widget()
-
-        self.addLayout(self.canvas_layout)
+        self.addWidget(self.canvas)
         self.addLayout(self.left_tool_box)
         self.addLayout(self.right_tool_box)
 
         self.las = None
 
-        self.gamma_graph_data: GraphData = None
+        self.graph_data: GraphData = None
         self.neutronic_graph_data: GraphData = None
-
-        self.is_gamma = False
-        self.is_neutronic = False
 
         self.size_entry = 0
         self.smooth_count_entry = 0
@@ -67,16 +57,6 @@ class GraphCanvas(QVBoxLayout):
     def set_las(self, las: LASFile):
         self.las = las
 
-    def set_is_gamma(self, is_gamma):
-        self.is_gamma = is_gamma
-
-    def set_is_neutronic(self, is_neutronic):
-        self.is_neutronic = is_neutronic
-
-    def define_device_type(self):
-        self.set_is_gamma("RSD" in self.las.keys())
-        self.set_is_neutronic("NTNC" in self.las.keys())
-
     def set_size_entry(self, size_entry):
         self.size_entry = size_entry
 
@@ -85,128 +65,118 @@ class GraphCanvas(QVBoxLayout):
 
 
     def on_mouse_press(self, event):
-        if self.is_gamma:
-            pass
-        if self.is_neutronic:
-            pass
+        if event.button == 1 and event.xdata is not None:  # Проверяем, что нажата левая кнопка мыши
+            # print("press", int(event.xdata))
+            self.left_dragging = True
+
+            self.left_vline_x = int(event.xdata)
+            self.left_tool_box.line_spinbox_x.setValue(self.left_vline_x)
+
+        if event.button == 3 and event.xdata is not None:  # Проверяем, что нажата левая кнопка мыши
+            # print("press", int(event.xdata))
+            self.right_dragging = True
+
+            self.right_vline_x = int(event.xdata)
+            self.right_tool_box.line_spinbox_x.setValue(self.right_vline_x)
 
     def on_mouse_move(self, event):
-        if self.is_gamma:
-            pass
-        if self.is_neutronic:
-            pass
+        if self.left_dragging and event.xdata is not None:
+            # print("move xdata", int(event.xdata))
+
+            self.left_vline_x = int(event.xdata)
+            self.left_tool_box.line_spinbox_x.setValue(self.left_vline_x)
+
+        if self.right_dragging and event.xdata is not None:
+            # print("move xdata", int(event.xdata))
+
+            self.right_vline_x = int(event.xdata)
+            self.right_tool_box.line_spinbox_x.setValue(self.right_vline_x)
 
     def on_mouse_release(self, event):
-        if self.is_gamma:
-            pass
-        if self.is_neutronic:
-            pass
-        
-    def create_figure(self, canvas_width):
-        # self.gamma_canvas.figure, _ = plt.subplots(4, figsize=(0, 0))
-        # self.neutronic_canvas.figure, _ = plt.subplots(4, figsize=(0, 0))
+        if self.left_dragging:
+            self.left_dragging = False
+            # print("release", int(event.xdata))
 
-        if self.is_gamma:
-            fig, self.axes = plt.subplots(4, figsize=(8 * canvas_width, 16))
-            print(self.axes)
-            fig.canvas.mpl_connect('button_press_event', self.on_mouse_press)
-            fig.canvas.mpl_connect('motion_notify_event', self.on_mouse_move)
-            fig.canvas.mpl_connect('button_release_event', self.on_mouse_release)
-            self.gamma_canvas = FigureCanvas(fig)
-            self.gamma_canvas.draw()
-        if self.is_neutronic:
-            fig, self.axes = plt.subplots(4, figsize=(8 * canvas_width, 16))
-            fig.canvas.mpl_connect('button_press_event', self.on_mouse_press)
-            fig.canvas.mpl_connect('motion_notify_event', self.on_mouse_move)
-            fig.canvas.mpl_connect('button_release_event', self.on_mouse_release)
-            self.neutronic_canvas = FigureCanvas(fig)
-            self.neutronic_canvas.draw()
+        if self.right_dragging:
+            self.right_dragging = False
+            # print("release", int(event.xdata))
+        
+    def create_figure(self):
+        fig, self.axes = plt.subplots(4, figsize=(4, 8))
+        fig.canvas.mpl_connect('button_press_event', self.on_mouse_press)
+        fig.canvas.mpl_connect('motion_notify_event', self.on_mouse_move)
+        fig.canvas.mpl_connect('button_release_event', self.on_mouse_release)
+        self.canvas.figure = fig
+        self.canvas.draw()
 
     def ensure_figure_created(self):
         # if len(self.axes) == 0:
-        if self.is_gamma and self.is_neutronic:
-            self.canvas_width = 1
-        else:
-            self.canvas_width = 2
 
-        self.create_figure(self.canvas_width)
+        self.create_figure()
+
+    def clear(self):
+        if self.axes is not None:
+            fig = plt.figure(figsize=(4, 8))
+            self.canvas.figure = fig
+            self.graph_data = None
+            self.clear_graphs()
+
+    def clear_graphs(self):
+        for ax in self.axes:
+            ax.clear()
 
 
     def get_data_from_las(self):
-        self.gamma_graph_data = None
-        self.neutronic_graph_data = None
-        if self.is_gamma:
-            self.gamma_graph_data = self.get_data(self.column_data_gamma)
-        if self.is_neutronic:
-            self.neutronic_graph_data = self.get_data(self.column_data_neutronic)
+        self.graph_data = self.get_data()
 
-    def get_data(self, abs_column_data: AbstractColumnData) -> GraphData:
+    def get_data(self) -> GraphData:
         graph_data = GraphData()
 
-        graph_data.near_probe = self.las[abs_column_data.near_probe]
-        graph_data.far_probe = self.las[abs_column_data.far_probe]
+        graph_data.near_probe = self.las[self.column_data.near_probe]
+        graph_data.far_probe = self.las[self.column_data.far_probe]
         graph_data.time = self.las["TIME"]
-        if self.is_gamma and self.is_neutronic:
-            graph_data.temper = self.las[abs_column_data.temper]
-        else:
-            graph_data.temper = self.las[abs_column_data.default_temper]
+        # if self.is_gamma and self.is_neutronic:
+        #     graph_data.temper = self.las[self.column_data.temper]
+        # else:
+        #     graph_data.temper = self.las[self.column_data.default_temper]
 
-        if self.is_gamma and not self.is_neutronic:
-            graph_data.near_probe_threshold = int(self.las[abs_column_data.near_probe_threshold][0])
-            graph_data.far_probe_threshold = int(self.las[abs_column_data.far_probe_threshold][0])
+        if self.column_data.temper in self.las.keys():
+            graph_data.temper = self.las[self.column_data.temper]
         else:
-            graph_data.near_probe_threshold = '\t\t'
-            graph_data.far_probe_threshold = '\t\t'
+            graph_data.temper = self.las[self.column_data.default_temper]
+
+        # if self.is_gamma and not self.is_neutronic:
+        #     graph_data.near_probe_threshold = int(self.las[self.column_data.near_probe_threshold][0])
+        #     graph_data.far_probe_threshold = int(self.las[self.column_data.far_probe_threshold][0])
+        # else:
+        #     graph_data.near_probe_threshold = '\t\t'
+        #     graph_data.far_probe_threshold = '\t\t'
+
+        graph_data.near_probe_threshold = '\t\t'
+        graph_data.far_probe_threshold = '\t\t'
 
         return graph_data
 
 
-    def clear_graphs(self):
-        for ax in self.axes.flat:
-            ax.clear()
-
     def crop_data_on_left(self):
-        if self.is_gamma:
-            self.gamma_graph_data.near_probe = self.gamma_graph_data.near_probe[self.left_vline_x:]
-            self.gamma_graph_data.far_probe = self.gamma_graph_data.far_probe[self.left_vline_x:]
-            self.gamma_graph_data.far_on_near_probe = self.gamma_graph_data.far_on_near_probe[self.left_vline_x:]
-            self.gamma_graph_data.temper = self.gamma_graph_data.temper[self.left_vline_x:]
-            self.gamma_graph_data.time = self.gamma_graph_data.time[self.left_vline_x:]
-            if len(self.gamma_graph_data.near_probe) - 1 > self.right_spinbox_max_value:
-                self.left_spinbox_max_value = self.right_spinbox_max_value
-            else:
-                self.left_spinbox_max_value = len(self.gamma_graph_data.near_probe) - 1
-            self.right_spinbox_max_value = len(self.gamma_graph_data.near_probe) - 1
-
-
-        if self.is_neutronic:
-            self.neutronic_graph_data.near_probe = self.neutronic_graph_data.near_probe[self.left_vline_x:]
-            self.neutronic_graph_data.far_probe = self.neutronic_graph_data.far_probe[self.left_vline_x:]
-            self.neutronic_graph_data.far_on_near_probe = self.neutronic_graph_data.far_on_near_probe[self.left_vline_x:]
-            self.neutronic_graph_data.temper = self.neutronic_graph_data.temper[self.left_vline_x:]
-            self.neutronic_graph_data.time = self.neutronic_graph_data.time[self.left_vline_x:]
-            if len(self.neutronic_graph_data.near_probe) - 1 > self.right_spinbox_max_value:
-                self.left_spinbox_max_value = self.right_spinbox_max_value
-            else:
-                self.left_spinbox_max_value = len(self.neutronic_graph_data.near_probe) - 1
-            self.right_spinbox_max_value = len(self.gamma_graph_data.near_probe) - 1
+        self.graph_data.near_probe = self.graph_data.near_probe[self.left_vline_x:]
+        self.graph_data.far_probe = self.graph_data.far_probe[self.left_vline_x:]
+        self.graph_data.far_on_near_probe = self.graph_data.far_on_near_probe[self.left_vline_x:]
+        self.graph_data.temper = self.graph_data.temper[self.left_vline_x:]
+        self.graph_data.time = self.graph_data.time[self.left_vline_x:]
+        if len(self.graph_data.near_probe) - 1 > self.right_spinbox_max_value:
+            self.left_spinbox_max_value = self.right_spinbox_max_value
+        else:
+            self.left_spinbox_max_value = len(self.graph_data.near_probe) - 1
+        self.right_spinbox_max_value = len(self.graph_data.near_probe) - 1
 
     def crop_data_on_right(self):
-        if self.is_gamma:
-            self.gamma_graph_data.near_probe = self.gamma_graph_data.near_probe[:self.right_vline_x + 1]
-            self.gamma_graph_data.far_probe = self.gamma_graph_data.far_probe[:self.right_vline_x + 1]
-            self.gamma_graph_data.far_on_near_probe = self.gamma_graph_data.far_on_near_probe[:self.right_vline_x + 1]
-            self.gamma_graph_data.temper = self.gamma_graph_data.temper[:self.right_vline_x + 1]
-            self.gamma_graph_data.time = self.gamma_graph_data.time[:self.right_vline_x + 1]
-            self.right_spinbox_max_value = len(self.gamma_graph_data.near_probe) - 1
-
-        if self.is_neutronic:
-            self.neutronic_graph_data.near_probe = self.neutronic_graph_data.near_probe[:self.right_vline_x + 1]
-            self.neutronic_graph_data.far_probe = self.neutronic_graph_data.far_probe[:self.right_vline_x + 1]
-            self.neutronic_graph_data.far_on_near_probe = self.neutronic_graph_data.far_on_near_probe[:self.right_vline_x + 1]
-            self.neutronic_graph_data.temper = self.neutronic_graph_data.temper[:self.right_vline_x + 1]
-            self.neutronic_graph_data.time = self.neutronic_graph_data.time[:self.right_vline_x + 1]
-            self.right_spinbox_max_value = len(self.neutronic_graph_data.near_probe) - 1
+        self.graph_data.near_probe = self.graph_data.near_probe[:self.right_vline_x + 1]
+        self.graph_data.far_probe = self.graph_data.far_probe[:self.right_vline_x + 1]
+        self.graph_data.far_on_near_probe = self.graph_data.far_on_near_probe[:self.right_vline_x + 1]
+        self.graph_data.temper = self.graph_data.temper[:self.right_vline_x + 1]
+        self.graph_data.time = self.graph_data.time[:self.right_vline_x + 1]
+        self.right_spinbox_max_value = len(self.graph_data.near_probe) - 1
 
 
     def ensure_left_line_created(self):
@@ -230,14 +200,14 @@ class GraphCanvas(QVBoxLayout):
             self.left_line[i].remove()
             self.left_line[i] = ax.axvline(self.left_vline_x, color='red')
 
-        self.gamma_canvas.draw()
+        self.canvas.draw()
 
     def draw_right_line(self):
         for i, ax in enumerate(self.axes.flat):
             self.right_line[i].remove()
             self.right_line[i] = ax.axvline(self.right_vline_x, color='blue')
 
-        self.gamma_canvas.draw()
+        self.canvas.draw()
 
     def update_left_line(self, new_value):
         if self.axes is None:
@@ -274,29 +244,10 @@ class GraphCanvas(QVBoxLayout):
 
 
     def update_graphs(self):
-        if self.is_gamma and self.is_neutronic:
-            # print('self.gamma_graph_data.time', self.gamma_graph_data.time)
-            # print('self.neutronic_graph_data.far_on_near_probe', self.neutronic_graph_data.far_on_near_probe)
-            
-            # todo: self.axes.flat
-            create_graph_on_canvas(self.axes[0, 0], self.gamma_graph_data.time, self.gamma_graph_data.near_probe, f"{self.column_data_gamma.near_probe}_1")
-            create_graph_on_canvas(self.axes[1, 0], self.gamma_graph_data.time, self.gamma_graph_data.far_probe, f"{self.column_data_gamma.far_probe}_1")
-            create_graph_on_canvas(self.axes[2, 0], self.gamma_graph_data.time, self.gamma_graph_data.far_on_near_probe, f"{self.column_data_gamma.far_probe}/{self.column_data_gamma.near_probe}")
-            create_graph_on_canvas(self.axes[3, 0], self.gamma_graph_data.time, self.gamma_graph_data.temper, "TEMPER")
-            create_graph_on_canvas(self.axes[0, 1], self.neutronic_graph_data.time, self.neutronic_graph_data.near_probe, f"{self.column_data_neutronic.near_probe}_1")
-            create_graph_on_canvas(self.axes[1, 1], self.neutronic_graph_data.time, self.neutronic_graph_data.far_probe, f"{self.column_data_neutronic.far_probe}_1")
-            create_graph_on_canvas(self.axes[2, 1], self.neutronic_graph_data.time, self.neutronic_graph_data.far_on_near_probe, f"{self.column_data_neutronic.far_probe}/{self.column_data_neutronic.near_probe}")
-            create_graph_on_canvas(self.axes[3, 1], self.neutronic_graph_data.time, self.neutronic_graph_data.temper, "TEMPER")
-        elif self.is_gamma:
-            create_graph_on_canvas(self.axes[0], self.gamma_graph_data.time, self.gamma_graph_data.near_probe, f"{self.column_data_gamma.near_probe}_1")
-            create_graph_on_canvas(self.axes[1], self.gamma_graph_data.time, self.gamma_graph_data.far_probe, f"{self.column_data_gamma.far_probe}_1")
-            create_graph_on_canvas(self.axes[2], self.gamma_graph_data.time, self.gamma_graph_data.far_on_near_probe, f"{self.column_data_gamma.far_probe}/{self.column_data_gamma.near_probe}")
-            create_graph_on_canvas(self.axes[3], self.gamma_graph_data.time, self.gamma_graph_data.temper, "TEMPER")
-        elif self.is_neutronic:
-            create_graph_on_canvas(self.axes[0], self.neutronic_graph_data.time, self.neutronic_graph_data.near_probe, f"{self.column_data_neutronic.near_probe}_1")
-            create_graph_on_canvas(self.axes[1], self.neutronic_graph_data.time, self.neutronic_graph_data.far_probe, f"{self.column_data_neutronic.far_probe}_1")
-            create_graph_on_canvas(self.axes[2], self.neutronic_graph_data.time, self.neutronic_graph_data.far_on_near_probe, f"{self.column_data_neutronic.far_probe}/{self.column_data_neutronic.near_probe}")
-            create_graph_on_canvas(self.axes[3], self.neutronic_graph_data.time, self.neutronic_graph_data.temper, "TEMPER")
+        create_graph_on_canvas(self.axes[0], self.graph_data.time, self.graph_data.near_probe, f"{self.column_data.near_probe}_1")
+        create_graph_on_canvas(self.axes[1], self.graph_data.time, self.graph_data.far_probe, f"{self.column_data.far_probe}_1")
+        create_graph_on_canvas(self.axes[2], self.graph_data.time, self.graph_data.far_on_near_probe, f"{self.column_data.far_probe}/{self.column_data.near_probe}")
+        create_graph_on_canvas(self.axes[3], self.graph_data.time, self.graph_data.temper, "TEMPER")
 
 
     def smooth_graph(self, graph_data: GraphData) -> GraphData:
@@ -319,16 +270,10 @@ class GraphCanvas(QVBoxLayout):
         return graph_data
 
     def calc_data(self):
-        if self.is_gamma:
-            self.gamma_graph_data = self.smooth_graph(self.gamma_graph_data)
-            self.left_spinbox_max_value = len(self.gamma_graph_data.near_probe) - 1
-            self.right_spinbox_max_value = len(self.gamma_graph_data.near_probe) - 1
+        self.graph_data = self.smooth_graph(self.graph_data)
+        self.left_spinbox_max_value = len(self.graph_data.near_probe) - 1
+        self.right_spinbox_max_value = len(self.graph_data.near_probe) - 1
         
-        if self.is_neutronic:
-            self.neutronic_graph_data = self.smooth_graph(self.neutronic_graph_data)
-            self.left_spinbox_max_value = len(self.neutronic_graph_data.near_probe) - 1
-            self.right_spinbox_max_value = len(self.neutronic_graph_data.near_probe) - 1
-
     def plot_graphs(self):
         if self.las is None:
             return
@@ -354,7 +299,7 @@ class GraphCanvas(QVBoxLayout):
         if self.right_vline_x == self.right_spinbox_max_value:
             self.draw_left_line()
 
-        self.gamma_canvas.draw()
+        self.canvas.draw()
 
     def crop_graphs_on_left(self):
         if self.las is None:
@@ -376,7 +321,7 @@ class GraphCanvas(QVBoxLayout):
         if self.right_vline_x == self.right_spinbox_max_value:
             self.draw_left_line()
 
-        self.gamma_canvas.draw()
+        self.canvas.draw()
 
     def crop_graphs_on_right(self):
         if self.las is None:
@@ -398,4 +343,4 @@ class GraphCanvas(QVBoxLayout):
         if self.right_vline_x == self.right_spinbox_max_value:
             self.draw_left_line()
 
-        self.gamma_canvas.draw()
+        self.canvas.draw()

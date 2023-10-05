@@ -2,16 +2,16 @@ from PyQt5.QtWidgets import QVBoxLayout, QFormLayout, QFileDialog, QLabel, QChec
 from PyQt5.QtCore import Qt
 import lasio
 
-from graph_layout.GraphCanvas import GraphCanvas
+from graph_layout.GraphLayout import GraphLayout
 from models.ColumnData import ColumnDataGamma, ColumnDataNeutronic
 from models.GraphData import GraphData
 from process_sample import save2doc
 
 class SidePanel(QVBoxLayout):
-    def __init__(self, las_file_analyzer, graph_canvas: GraphCanvas):
+    def __init__(self, las_file_analyzer, graph_layout: GraphLayout):
         super().__init__()
 
-        self.graph_canvas = graph_canvas
+        self.graph_layout = graph_layout
 
         self.las_file_analyzer = las_file_analyzer
 
@@ -24,14 +24,14 @@ class SidePanel(QVBoxLayout):
         DURATION_1_COUNT = 4000
         self.size_entry = QLineEdit()
         self.size_entry.setText(str(int(4 * 60 * 1000 / DURATION_1_COUNT)))
-        self.size_entry.textChanged.connect(self.graph_canvas.set_size_entry)
-        self.graph_canvas.set_size_entry(self.size_entry.text())
+        self.size_entry.textChanged.connect(self.graph_layout.set_size_entry)
+        self.graph_layout.set_size_entry(self.size_entry.text())
 
         # Количество применений функции сглаживания
         self.smooth_count_entry = QLineEdit()
         self.smooth_count_entry.setText("3")
-        self.smooth_count_entry.textChanged.connect(self.graph_canvas.set_smooth_count_entry)
-        self.graph_canvas.set_smooth_count_entry(self.smooth_count_entry.text())
+        self.smooth_count_entry.textChanged.connect(self.graph_layout.set_smooth_count_entry)
+        self.graph_layout.set_smooth_count_entry(self.smooth_count_entry.text())
 
         # Часть графика для обработки
         self.process_heat_checkbox = QCheckBox("Нагрев")
@@ -66,7 +66,7 @@ class SidePanel(QVBoxLayout):
 
         # Кнопка построения графиков
         self.plot_button = QPushButton("Перестроить графики")
-        self.plot_button.clicked.connect(self.graph_canvas.plot_graphs)
+        self.plot_button.clicked.connect(self.graph_layout.plot_graphs)
         self.addWidget(self.plot_button)
 
         # Кнопка показать расчеты
@@ -90,21 +90,19 @@ class SidePanel(QVBoxLayout):
         file_path, _ = QFileDialog.getOpenFileName(self.las_file_analyzer, "Открыть .las файл", "", "LAS Files (*.las)", options=options)
         if file_path:
             self.file_path_label.setText(file_path.split("/")[-1])
-            self.graph_canvas.set_las(lasio.read(file_path, encoding="cp1251"))
+            self.graph_layout.set_las(lasio.read(file_path, encoding="cp1251"))
 
-            self.graph_canvas.define_device_type()
-
-            self.graph_canvas.plot_graphs()
+            self.graph_layout.plot_graphs()
 
 
     def save_to_docx(self):
-        if self.graph_canvas.is_gamma and self.graph_canvas.is_neutronic:
+        if self.graph_layout.is_gamma and self.graph_layout.is_neutronic:
             if self.device_type_gamma_radio_btn.isChecked():
                 titles = self.column_data_gamma.near_probe, self.column_data_gamma.far_probe
                 serial_number = '12345'
                 instrument_name = 'GGKP'
                 self.save_to_separate_docx(
-                    self.graph_canvas.gamma_graph_data, 
+                    self.graph_layout.gamma_graph_data, 
                     titles,
                     process_heat=self.process_heat_checkbox.isChecked(),
                     process_cool=False,
@@ -117,7 +115,7 @@ class SidePanel(QVBoxLayout):
                 serial_number = '12345'
                 instrument_name = 'NNKT'
                 self.save_to_separate_docx(
-                    self.graph_canvas.neutronic_graph_data, 
+                    self.graph_layout.neutronic_graph_data, 
                     titles,
                     process_heat=False,
                     process_cool=self.process_cool_checkbox.isChecked(),
@@ -127,12 +125,12 @@ class SidePanel(QVBoxLayout):
             return
 
 
-        if self.graph_canvas.is_gamma:
+        if self.graph_layout.is_gamma:
             titles = self.column_data_gamma.near_probe, self.column_data_gamma.far_probe
-            serial_number = self.graph_canvas.las.well["SNUM"].value
-            instrument_name = self.graph_canvas.las.well["NAME"].value
+            serial_number = self.graph_layout.las.well["SNUM"].value
+            instrument_name = self.graph_layout.las.well["NAME"].value
             self.save_to_separate_docx(
-                self.graph_canvas.gamma_graph_data, 
+                self.graph_layout.gamma_graph_data, 
                 titles,
                 self.process_heat_checkbox.isChecked(),
                 self.process_cool_checkbox.isChecked(),
@@ -140,12 +138,12 @@ class SidePanel(QVBoxLayout):
                 instrument_name
             )
             
-        if self.graph_canvas.is_neutronic:
+        if self.graph_layout.is_neutronic:
             titles = self.column_data_neutronic.near_probe, self.column_data_neutronic.far_probe
-            serial_number = self.graph_canvas.las.well["SNUM"].value
-            instrument_name = self.graph_canvas.las.well["NAME"].value
+            serial_number = self.graph_layout.las.well["SNUM"].value
+            instrument_name = self.graph_layout.las.well["NAME"].value
             self.save_to_separate_docx(
-                self.graph_canvas.neutronic_graph_data, 
+                self.graph_layout.neutronic_graph_data, 
                 titles,
                 self.process_heat_checkbox.isChecked(),
                 self.process_cool_checkbox.isChecked(),
@@ -154,13 +152,13 @@ class SidePanel(QVBoxLayout):
             )
 
     def save_to_separate_docx(self, data: GraphData, titles, process_heat, process_cool, serial_number, instrument_name):
-        if self.graph_canvas.las is None:
+        if self.graph_layout.las is None:
             return
 
         self.success_label.setText("processing...")
 
         # serial_number = self.graph_canvas.las.well["SNUM"].value
-        date = self.graph_canvas.las.well["DATE"].value
+        date = self.graph_layout.las.well["DATE"].value
         # instrument_name = self.graph_canvas.las.well["NAME"].value
 
         description = (serial_number, date, instrument_name)

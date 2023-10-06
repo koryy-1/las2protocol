@@ -91,7 +91,6 @@ class SidePanel(QVBoxLayout):
         if file_path:
             self.file_path_label.setText(file_path.split("/")[-1])
             self.graph_layout.set_las(lasio.read(file_path, encoding="cp1251"))
-
             self.graph_layout.plot_graphs()
 
 
@@ -100,68 +99,70 @@ class SidePanel(QVBoxLayout):
             if self.device_type_gamma_radio_btn.isChecked():
                 titles = self.column_data_gamma.near_probe, self.column_data_gamma.far_probe
                 serial_number = '12345'
+                date = self.graph_layout.gamma_graph_canvas.las.well["DATE"].value
                 instrument_name = 'GGKP'
                 self.save_to_separate_docx(
-                    self.graph_layout.gamma_graph_data, 
+                    self.graph_layout.gamma_graph_canvas.las is None,
+                    self.graph_layout.gamma_graph_canvas.graph_data, 
                     titles,
-                    process_heat=self.process_heat_checkbox.isChecked(),
-                    process_cool=False,
-                    serial_number=serial_number,
-                    instrument_name=instrument_name
+                    self.process_heat_checkbox.isChecked(),
+                    self.process_cool_checkbox.isChecked(),
+                    (serial_number, date, instrument_name)
                 )
                 
             if self.device_type_neutronic_radio_btn.isChecked():
                 titles = self.column_data_neutronic.near_probe, self.column_data_neutronic.far_probe
                 serial_number = '12345'
+                date = self.graph_layout.neutronic_graph_canvas.las.well["DATE"].value
                 instrument_name = 'NNKT'
                 self.save_to_separate_docx(
-                    self.graph_layout.neutronic_graph_data, 
+                    self.graph_layout.neutronic_graph_canvas.las is None,
+                    self.graph_layout.neutronic_graph_canvas.graph_data, 
                     titles,
-                    process_heat=False,
-                    process_cool=self.process_cool_checkbox.isChecked(),
-                    serial_number=serial_number,
-                    instrument_name=instrument_name
+                    self.process_heat_checkbox.isChecked(),
+                    self.process_cool_checkbox.isChecked(),
+                    (serial_number, date, instrument_name)
                 )
             return
 
 
         if self.graph_layout.is_gamma:
             titles = self.column_data_gamma.near_probe, self.column_data_gamma.far_probe
-            serial_number = self.graph_layout.las.well["SNUM"].value
-            instrument_name = self.graph_layout.las.well["NAME"].value
+            serial_number = self.graph_layout.gamma_graph_canvas.las.well["SNUM"].value
+            date = self.graph_layout.gamma_graph_canvas.las.well["DATE"].value
+            instrument_name = self.graph_layout.gamma_graph_canvas.las.well["NAME"].value
             self.save_to_separate_docx(
-                self.graph_layout.gamma_graph_data, 
+                self.graph_layout.gamma_graph_canvas.las is None,
+                self.graph_layout.gamma_graph_canvas.graph_data, 
                 titles,
                 self.process_heat_checkbox.isChecked(),
                 self.process_cool_checkbox.isChecked(),
-                serial_number,
-                instrument_name
+                (serial_number, date, instrument_name)
             )
             
         if self.graph_layout.is_neutronic:
             titles = self.column_data_neutronic.near_probe, self.column_data_neutronic.far_probe
-            serial_number = self.graph_layout.las.well["SNUM"].value
-            instrument_name = self.graph_layout.las.well["NAME"].value
+            serial_number = self.graph_layout.neutronic_graph_canvas.las.well["SNUM"].value
+            date = self.graph_layout.neutronic_graph_canvas.las.well["DATE"].value
+            instrument_name = self.graph_layout.neutronic_graph_canvas.las.well["NAME"].value
             self.save_to_separate_docx(
-                self.graph_layout.neutronic_graph_data, 
+                self.graph_layout.neutronic_graph_canvas.las is None,
+                self.graph_layout.neutronic_graph_canvas.graph_data, 
                 titles,
                 self.process_heat_checkbox.isChecked(),
                 self.process_cool_checkbox.isChecked(),
-                serial_number,
-                instrument_name
+                (serial_number, date, instrument_name)
             )
 
-    def save_to_separate_docx(self, data: GraphData, titles, process_heat, process_cool, serial_number, instrument_name):
-        if self.graph_layout.las is None:
+    def save_to_separate_docx(self, las_is_none, data: GraphData, titles, process_heat, process_cool, description):
+        if las_is_none:
             return
 
         self.success_label.setText("processing...")
 
         # serial_number = self.graph_canvas.las.well["SNUM"].value
-        date = self.graph_layout.las.well["DATE"].value
+        # date = self.graph_layout.las.well["DATE"].value
         # instrument_name = self.graph_canvas.las.well["NAME"].value
-
-        description = (serial_number, date, instrument_name)
 
         thresholds = (
             data.near_probe_threshold,

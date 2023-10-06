@@ -20,9 +20,11 @@ class GraphCanvas(QWidget):
         self.column_data = column_data
 
         # panels for control vert lines
-        self.left_tool_box = ToolBox("Левая", self.crop_graphs_on_left, self.update_left_line)
-
-        self.right_tool_box = ToolBox("Правая", self.crop_graphs_on_right, self.update_right_line)
+        self.tool_box = ToolBox(
+            self.crop_graphs,
+            self.update_left_line,
+            self.update_right_line
+        )
 
         # Создаем виджет Matplotlib для вывода графиков
         self.figure = Figure(figsize=(8, 16))
@@ -32,8 +34,7 @@ class GraphCanvas(QWidget):
 
         layout = QVBoxLayout()
         layout.addWidget(self.canvas)
-        layout.addLayout(self.left_tool_box)
-        layout.addLayout(self.right_tool_box)
+        layout.addLayout(self.tool_box)
         self.setLayout(layout)
 
         self.las = None
@@ -71,27 +72,27 @@ class GraphCanvas(QWidget):
             self.left_dragging = True
 
             self.left_vline_x = int(event.xdata)
-            self.left_tool_box.line_spinbox_x.setValue(self.left_vline_x)
+            self.tool_box.left_line_spinbox_x.setValue(self.left_vline_x)
 
         if event.button == 3 and event.xdata is not None:  # Проверяем, что нажата левая кнопка мыши
             # print("press", int(event.xdata))
             self.right_dragging = True
 
             self.right_vline_x = int(event.xdata)
-            self.right_tool_box.line_spinbox_x.setValue(self.right_vline_x)
+            self.tool_box.right_line_spinbox_x.setValue(self.right_vline_x)
 
     def on_mouse_move(self, event):
         if self.left_dragging and event.xdata is not None:
             # print("move xdata", int(event.xdata))
 
             self.left_vline_x = int(event.xdata)
-            self.left_tool_box.line_spinbox_x.setValue(self.left_vline_x)
+            self.tool_box.left_line_spinbox_x.setValue(self.left_vline_x)
 
         if self.right_dragging and event.xdata is not None:
             # print("move xdata", int(event.xdata))
 
             self.right_vline_x = int(event.xdata)
-            self.right_tool_box.line_spinbox_x.setValue(self.right_vline_x)
+            self.tool_box.right_line_spinbox_x.setValue(self.right_vline_x)
 
     def on_mouse_release(self, event):
         if self.left_dragging:
@@ -103,26 +104,26 @@ class GraphCanvas(QWidget):
             # print("release", int(event.xdata))
         
     def create_figure(self):
-        self.fig = Figure(figsize=(4, 8))
-        self.axes = []
+        print('create ', self.column_data.near_probe)
+        self.figure = Figure(figsize=(4, 6))
         for i in range(4):
-            self.axes.append(self.fig.add_subplot(4, 1, i + 1))
-        self.fig.canvas.mpl_connect('button_press_event', self.on_mouse_press)
-        self.fig.canvas.mpl_connect('motion_notify_event', self.on_mouse_move)
-        self.fig.canvas.mpl_connect('button_release_event', self.on_mouse_release)
-        self.canvas.figure = self.fig
+            self.axes.append(self.figure.add_subplot(4, 1, i + 1))
+        self.figure.canvas.mpl_connect('button_press_event', self.on_mouse_press)
+        self.figure.canvas.mpl_connect('motion_notify_event', self.on_mouse_move)
+        self.figure.canvas.mpl_connect('button_release_event', self.on_mouse_release)
+        self.canvas.figure = self.figure
         self.canvas.draw()
 
     def ensure_figure_created(self):
-        # if len(self.axes) == 0:
-
-        self.create_figure()
+        if len(self.axes) == 0:
+            self.create_figure()
 
     def clear(self):
-        if len(self.axes) > 0:
-            print(self.column_data.near_probe)
+        if len(self.axes) != 0:
+            print('clear', self.column_data.near_probe)
             self.figure.clear()
-            # self.clear_graphs()
+            self.figure = None
+            self.axes.clear()
             self.canvas.draw()
 
     def clear_graphs(self):
@@ -162,24 +163,16 @@ class GraphCanvas(QWidget):
         return graph_data
 
 
-    def crop_data_on_left(self):
-        self.graph_data.near_probe = self.graph_data.near_probe[self.left_vline_x:]
-        self.graph_data.far_probe = self.graph_data.far_probe[self.left_vline_x:]
-        self.graph_data.far_on_near_probe = self.graph_data.far_on_near_probe[self.left_vline_x:]
-        self.graph_data.temper = self.graph_data.temper[self.left_vline_x:]
-        self.graph_data.time = self.graph_data.time[self.left_vline_x:]
+    def crop_data(self):
+        self.graph_data.near_probe = self.graph_data.near_probe[self.left_vline_x:self.right_vline_x + 1]
+        self.graph_data.far_probe = self.graph_data.far_probe[self.left_vline_x:self.right_vline_x + 1]
+        self.graph_data.far_on_near_probe = self.graph_data.far_on_near_probe[self.left_vline_x:self.right_vline_x + 1]
+        self.graph_data.temper = self.graph_data.temper[self.left_vline_x:self.right_vline_x + 1]
+        self.graph_data.time = self.graph_data.time[self.left_vline_x:self.right_vline_x + 1]
         if len(self.graph_data.near_probe) - 1 > self.right_spinbox_max_value:
             self.left_spinbox_max_value = self.right_spinbox_max_value
         else:
             self.left_spinbox_max_value = len(self.graph_data.near_probe) - 1
-        self.right_spinbox_max_value = len(self.graph_data.near_probe) - 1
-
-    def crop_data_on_right(self):
-        self.graph_data.near_probe = self.graph_data.near_probe[:self.right_vline_x + 1]
-        self.graph_data.far_probe = self.graph_data.far_probe[:self.right_vline_x + 1]
-        self.graph_data.far_on_near_probe = self.graph_data.far_on_near_probe[:self.right_vline_x + 1]
-        self.graph_data.temper = self.graph_data.temper[:self.right_vline_x + 1]
-        self.graph_data.time = self.graph_data.time[:self.right_vline_x + 1]
         self.right_spinbox_max_value = len(self.graph_data.near_probe) - 1
 
 
@@ -250,7 +243,7 @@ class GraphCanvas(QWidget):
     def update_graphs(self):
         self.create_graph_on_canvas(self.axes[0], self.graph_data.time, self.graph_data.near_probe, f"{self.column_data.near_probe}_1")
         self.create_graph_on_canvas(self.axes[1], self.graph_data.time, self.graph_data.far_probe, f"{self.column_data.far_probe}_1")
-        self.create_graph_on_canvas(self.axes[2], self.graph_data.time, self.graph_data.far_on_near_probe, f"{self.column_data.far_probe}/{self.column_data.near_probe}")
+        # self.create_graph_on_canvas(self.axes[2], self.graph_data.time, self.graph_data.far_on_near_probe, f"{self.column_data.far_probe}/{self.column_data.near_probe}")
         self.create_graph_on_canvas(self.axes[3], self.graph_data.time, self.graph_data.temper, "TEMPER")
 
     def create_graph_on_canvas(self, ax: Axes, x, y, plot_title: str):
@@ -301,57 +294,35 @@ class GraphCanvas(QWidget):
 
         self.update_graphs()
         
-        self.left_tool_box.line_spinbox_x.setMaximum(self.left_spinbox_max_value)
-        self.left_tool_box.line_spinbox_x.setValue(0)
+        self.tool_box.left_line_spinbox_x.setMaximum(self.left_spinbox_max_value)
+        self.tool_box.left_line_spinbox_x.setValue(0)
         if self.left_vline_x == 0:
             self.draw_left_line()
 
-        self.right_tool_box.line_spinbox_x.setMaximum(self.right_spinbox_max_value)
-        self.right_tool_box.line_spinbox_x.setValue(self.right_spinbox_max_value)
+        self.tool_box.right_line_spinbox_x.setMaximum(self.right_spinbox_max_value)
+        self.tool_box.right_line_spinbox_x.setValue(self.right_spinbox_max_value)
         if self.right_vline_x == self.right_spinbox_max_value:
             self.draw_left_line()
 
         self.canvas.draw()
 
-    def crop_graphs_on_left(self):
+    def crop_graphs(self):
         if self.las is None:
             return
         
         self.clear_graphs()
 
-        self.crop_data_on_left()
+        self.crop_data()
 
         self.update_graphs()
 
-        self.left_tool_box.line_spinbox_x.setMaximum(self.left_spinbox_max_value)
-        self.left_tool_box.line_spinbox_x.setValue(0)
+        self.tool_box.left_line_spinbox_x.setMaximum(self.left_spinbox_max_value)
+        self.tool_box.left_line_spinbox_x.setValue(0)
         if self.left_vline_x == 0 or self.right_vline_x == self.right_spinbox_max_value:
             self.draw_left_line()
             
-        self.right_tool_box.line_spinbox_x.setMaximum(self.right_spinbox_max_value)
-        self.right_tool_box.line_spinbox_x.setValue(self.right_spinbox_max_value)
-        if self.right_vline_x == self.right_spinbox_max_value:
-            self.draw_left_line()
-
-        self.canvas.draw()
-
-    def crop_graphs_on_right(self):
-        if self.las is None:
-            return
-        
-        self.clear_graphs()
-
-        self.crop_data_on_right()
-
-        self.update_graphs()
-
-        self.left_tool_box.line_spinbox_x.setMaximum(self.right_spinbox_max_value)
-        self.left_tool_box.line_spinbox_x.setValue(0)
-        if self.left_vline_x == 0:
-            self.draw_right_line()
-
-        self.right_tool_box.line_spinbox_x.setMaximum(self.right_spinbox_max_value)
-        self.right_tool_box.line_spinbox_x.setValue(self.right_spinbox_max_value)
+        self.tool_box.right_line_spinbox_x.setMaximum(self.right_spinbox_max_value)
+        self.tool_box.right_line_spinbox_x.setValue(self.right_spinbox_max_value)
         if self.right_vline_x == self.right_spinbox_max_value:
             self.draw_left_line()
 

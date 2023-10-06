@@ -54,5 +54,7 @@ class GraphLayout(QHBoxLayout):
         self.neutronic_graph_canvas.set_smooth_count_entry(smooth_count_entry)
 
     def plot_graphs(self):
-        self.gamma_graph_canvas.plot_graphs()
-        self.neutronic_graph_canvas.plot_graphs()
+        if self.is_gamma:
+            self.gamma_graph_canvas.plot_graphs()
+        if self.is_neutronic:
+            self.neutronic_graph_canvas.plot_graphs()

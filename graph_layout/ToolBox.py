@@ -6,31 +6,45 @@ from models.GraphData import GraphData
 from models.ColumnData import AbstractColumnData
 
 class ToolBox(QHBoxLayout):
-    def __init__(self, line_type, crop_graphs, update_line):
+    def __init__(self, crop_graphs, update_left_line, update_right_line):
         super().__init__()
 
         # Создание кнопки "Обрезать"
         self.cut_button = QPushButton("Обрезать")
         self.cut_button.clicked.connect(crop_graphs)
 
-        # красная линия
-        self.line_label_x = QLabel(f"{line_type} линия X: ")
-        self.line_label_y = QLabel("")
-        self.line_spinbox_x = QSpinBox()
-        self.line_spinbox_x.setMaximum(2147483647)
-        self.spinbox_max_value = 2147483647
-        self.line_spinbox_x.valueChanged.connect(update_line)
-
+        # left line
+        self.left_line_label_x = QLabel(f"Левая линия X: ")
+        self.left_line_label_y = QLabel("")
+        self.left_line_spinbox_x = QSpinBox()
+        self.left_line_spinbox_x.setMaximum(2147483647)
+        self.left_spinbox_max_value = 2147483647
+        self.left_line_spinbox_x.valueChanged.connect(update_left_line)
         # layout for spinbox
-        spinbox_layout = QHBoxLayout()
-        spinbox_layout.setContentsMargins(0, 0, 20, 0)
-        spinbox_layout.addWidget(self.line_label_x)
-        spinbox_layout.addWidget(self.line_spinbox_x)
-        spinbox_layout.addWidget(self.line_label_y)
+        left_line_spinbox_layout = QHBoxLayout()
+        left_line_spinbox_layout.setContentsMargins(0, 0, 20, 0)
+        left_line_spinbox_layout.addWidget(self.left_line_label_x)
+        left_line_spinbox_layout.addWidget(self.left_line_spinbox_x)
+        left_line_spinbox_layout.addWidget(self.left_line_label_y)
+
+        # right line
+        self.right_line_label_x = QLabel(f"Правая линия X: ")
+        self.right_line_label_y = QLabel("")
+        self.right_line_spinbox_x = QSpinBox()
+        self.right_line_spinbox_x.setMaximum(2147483647)
+        self.right_spinbox_max_value = 2147483647
+        self.right_line_spinbox_x.valueChanged.connect(update_right_line)
+        # layout for spinbox
+        right_line_spinbox_layout = QHBoxLayout()
+        right_line_spinbox_layout.setContentsMargins(0, 0, 20, 0)
+        right_line_spinbox_layout.addWidget(self.right_line_label_x)
+        right_line_spinbox_layout.addWidget(self.right_line_spinbox_x)
+        right_line_spinbox_layout.addWidget(self.right_line_label_y)
 
         # btns_layout.setAlignment(Qt.AlignmentFlag.AlignLeft)
         self.setContentsMargins(20, 0, 0, 0)
-        self.addLayout(spinbox_layout)
+        self.addLayout(left_line_spinbox_layout)
+        self.addLayout(right_line_spinbox_layout)
         self.addWidget(self.cut_button, 0, Qt.AlignmentFlag.AlignRight)
 
     def update_line_label(self, graph_data: GraphData, column_data: AbstractColumnData, line_pos_x):

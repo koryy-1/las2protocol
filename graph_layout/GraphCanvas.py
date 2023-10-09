@@ -1,5 +1,6 @@
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton, QGraphicsScene
 from PyQt5.QtCore import Qt
+from matplotlib import pyplot as plt
 from matplotlib.axes import Axes
 
 from matplotlib.figure import Figure
@@ -243,14 +244,25 @@ class GraphCanvas(QWidget):
     def update_graphs(self):
         self.create_graph_on_canvas(self.axes[0], self.graph_data.time, self.graph_data.near_probe, f"{self.column_data.near_probe}_1")
         self.create_graph_on_canvas(self.axes[1], self.graph_data.time, self.graph_data.far_probe, f"{self.column_data.far_probe}_1")
-        # self.create_graph_on_canvas(self.axes[2], self.graph_data.time, self.graph_data.far_on_near_probe, f"{self.column_data.far_probe}/{self.column_data.near_probe}")
+        self.create_graph_on_canvas(self.axes[2], self.graph_data.time, self.graph_data.far_on_near_probe, f"{self.column_data.far_probe}/{self.column_data.near_probe}")
         self.create_graph_on_canvas(self.axes[3], self.graph_data.time, self.graph_data.temper, "TEMPER")
 
     def create_graph_on_canvas(self, ax: Axes, x, y, plot_title: str):
         # print(plot_title, y)
+        fontsize = 12
+        plt.rc('font', size=fontsize) #controls default text size
+        plt.rc('axes', titlesize=fontsize) #fontsize of the title
+        plt.rc('axes', labelsize=fontsize) #fontsize of the x and y labels
+        plt.rc('xtick', labelsize=fontsize) #fontsize of the x tick labels
+        plt.rc('ytick', labelsize=fontsize) #fontsize of the y tick labels
+        plt.rc('legend', fontsize=fontsize) #fontsize of the legend
+        
         ax.grid(True)
         ax.plot(y, label=plot_title)
-        ax.set_ylim(y[np.isfinite(y)].min() * 0.9, y[np.isfinite(y)].max() * 1.1)
+        try:
+            ax.set_ylim(y[np.isfinite(y)].min() * 0.9, y[np.isfinite(y)].max() * 1.1)
+        except:
+            print(f"no {plot_title}")
         ax.set_xlim(-(len(x) * 0.02), len(x) * 1.23)
         ax.legend(loc='right')
 

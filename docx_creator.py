@@ -15,7 +15,10 @@ def make_docx(params_for_reporting: ParamsForReport, MEM_FILES, picture_size):
     style.font.size = Pt(12)
 
     p_header = document.add_paragraph()
-    p_header.add_run('Протокол').bold = True
+    run = p_header.add_run('Протокол')
+    run.bold = True
+    font = run.font
+    font.size = Pt(16)
     p_header_fmt = p_header.paragraph_format
     p_header_fmt.alignment = WD_ALIGN_PARAGRAPH.CENTER
 
@@ -63,12 +66,13 @@ def make_docx(params_for_reporting: ParamsForReport, MEM_FILES, picture_size):
             row_cells[1].text = formula
             row_cells[1].width = Inches(1.5)
             if num >= 6:
-                row_cells[2].bold = True
-                row_cells[3].bold = True
-                row_cells[4].bold = True
-            row_cells[2].text = str(NEAR_PROBE)
-            row_cells[3].text = str(FAR_PROBE)
-            row_cells[4].text = str(FAR_ON_NEAR_PROBE)
+                row_cells[2].paragraphs[0].add_run(str(NEAR_PROBE)).bold = True
+                row_cells[3].paragraphs[0].add_run(str(NEAR_PROBE)).bold = True
+                row_cells[4].paragraphs[0].add_run(str(NEAR_PROBE)).bold = True
+            else:
+                row_cells[2].paragraphs[0].add_run(str(NEAR_PROBE))
+                row_cells[3].paragraphs[0].add_run(str(NEAR_PROBE))
+                row_cells[4].paragraphs[0].add_run(str(NEAR_PROBE))
 
         cooling_table.style = 'Table Grid'
 
@@ -93,14 +97,15 @@ def make_docx(params_for_reporting: ParamsForReport, MEM_FILES, picture_size):
             row_cells[0].width = Inches(0.4)
             row_cells[1].text = formula
             row_cells[1].width = Inches(1.5)
+
             if num >= 6:
-                row_cells[2].bold = True
-                row_cells[3].bold = True
-                # row_cells[4].bold = True
-                row_cells[4].paragraphs[0].add_run(str(FAR_ON_NEAR_PROBE)).bold = True
-            row_cells[2].text = str(NEAR_PROBE)
-            row_cells[3].text = str(FAR_PROBE)
-            row_cells[4].text = str(FAR_ON_NEAR_PROBE)
+                row_cells[2].paragraphs[0].add_run(str(NEAR_PROBE)).bold = True
+                row_cells[3].paragraphs[0].add_run(str(NEAR_PROBE)).bold = True
+                row_cells[4].paragraphs[0].add_run(str(NEAR_PROBE)).bold = True
+            else:
+                row_cells[2].paragraphs[0].add_run(str(NEAR_PROBE))
+                row_cells[3].paragraphs[0].add_run(str(NEAR_PROBE))
+                row_cells[4].paragraphs[0].add_run(str(NEAR_PROBE))
 
         cooling_table.style = 'Table Grid'
     

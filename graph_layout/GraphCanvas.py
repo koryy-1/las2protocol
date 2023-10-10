@@ -28,7 +28,7 @@ class GraphCanvas(QWidget):
         )
 
         # Создаем виджет Matplotlib для вывода графиков
-        self.figure = Figure(figsize=(8, 16))
+        self.figure = Figure(figsize=(16, 16))
         self.canvas = FigureCanvas(self.figure)
         # self.scene = QGraphicsScene()
         # self.view = self.scene.addWidget(self.canvas)
@@ -106,7 +106,9 @@ class GraphCanvas(QWidget):
         
     def create_figure(self):
         print('create ', self.column_data.near_probe)
-        self.figure = Figure(figsize=(4, 6))
+        self.figure = Figure(figsize=(8, 6))
+        # self.figure.tight_layout(h_pad=30)
+        self.figure.subplots_adjust(hspace=0.4)
         for i in range(4):
             self.axes.append(self.figure.add_subplot(4, 1, i + 1))
         self.figure.canvas.mpl_connect('button_press_event', self.on_mouse_press)
@@ -249,22 +251,27 @@ class GraphCanvas(QWidget):
 
     def create_graph_on_canvas(self, ax: Axes, x, y, plot_title: str):
         # print(plot_title, y)
+        ax.plot(y, label=plot_title, linewidth=2)
+
         fontsize = 12
-        plt.rc('font', size=fontsize) #controls default text size
-        plt.rc('axes', titlesize=fontsize) #fontsize of the title
-        plt.rc('axes', labelsize=fontsize) #fontsize of the x and y labels
-        plt.rc('xtick', labelsize=fontsize) #fontsize of the x tick labels
-        plt.rc('ytick', labelsize=fontsize) #fontsize of the y tick labels
-        plt.rc('legend', fontsize=fontsize) #fontsize of the legend
+        # plt.rc('font', size=fontsize) #controls default text size
+        # plt.rc('axes', titlesize=fontsize) #fontsize of the title
+        # plt.rc('axes', labelsize=fontsize) #fontsize of the x and y labels
+        # plt.rc('legend', fontsize=fontsize) #fontsize of the legend
+
+        ax.xaxis.set_tick_params(labelsize=fontsize, width=1)
+        ax.yaxis.set_tick_params(labelsize=fontsize, width=1)
+
+        ax.xaxis.grid(True, linewidth=1, alpha=1, color='black')
+        ax.yaxis.grid(True, linewidth=1, alpha=1, color='black')
+
+        ax.legend(loc='right', fontsize=fontsize)
         
-        ax.grid(True)
-        ax.plot(y, label=plot_title)
         try:
             ax.set_ylim(y[np.isfinite(y)].min() * 0.9, y[np.isfinite(y)].max() * 1.1)
         except:
             print(f"no {plot_title}")
         ax.set_xlim(-(len(x) * 0.02), len(x) * 1.23)
-        ax.legend(loc='right')
 
 
     def smooth_graph(self, graph_data: GraphData) -> GraphData:

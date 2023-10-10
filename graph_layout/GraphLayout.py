@@ -22,13 +22,41 @@ class GraphLayout(QHBoxLayout):
 
         self.is_gamma = False
         self.is_neutronic = False
+        self.is_gamma_canvas_visible = True
+        self.is_neutronic_canvas_visible = True
+
+    def show_gamma_canvas(self):
+        if not self.is_gamma_canvas_visible:
+            self.layout().addWidget(self.gamma_graph_canvas)
+            self.is_gamma_canvas_visible = not self.is_gamma_canvas_visible
+
+    def hide_gamma_canvas(self):
+        if self.is_gamma_canvas_visible:
+            self.layout().removeWidget(self.gamma_graph_canvas)
+            self.is_gamma_canvas_visible = not self.is_gamma_canvas_visible
+
+
+    def show_neutronic_canvas(self):
+        if not self.is_neutronic_canvas_visible:
+            self.layout().addWidget(self.neutronic_graph_canvas)
+            self.is_neutronic_canvas_visible = not self.is_neutronic_canvas_visible
+
+    def hide_neutronic_canvas(self):
+        if self.is_neutronic_canvas_visible:
+            self.layout().removeWidget(self.neutronic_graph_canvas)
+            self.is_neutronic_canvas_visible = not self.is_neutronic_canvas_visible
+
 
     def set_las(self, las: LASFile):
         self.clear_canvases()
+        # self.hide_gamma_canvas()
+        # self.hide_neutronic_canvas()
         self.define_device_type(las)
         if self.is_gamma:
+            # self.show_gamma_canvas()
             self.gamma_graph_canvas.set_las(las)
         if self.is_neutronic:
+            # self.show_neutronic_canvas()
             self.neutronic_graph_canvas.set_las(las)
 
     def clear_canvases(self):

@@ -1,11 +1,13 @@
 from PyQt5.QtWidgets import QVBoxLayout, QFormLayout, QFileDialog, QLabel, QCheckBox, QRadioButton, QLineEdit, QPushButton
 from PyQt5.QtCore import Qt
 import lasio
+from MultiTableWindow import MultiTableWindow
 
 from graph_layout.GraphLayout import GraphLayout
 from models.ColumnData import ColumnDataGamma, ColumnDataNeutronic
 from models.GraphData import GraphData
-from process_sample import save2doc
+from process_sample import get_calc_for_tables, save2doc
+from utils import find_temperature_drop_point
 
 class SidePanel(QVBoxLayout):
     def __init__(self, las_file_analyzer, graph_layout: GraphLayout):
@@ -71,7 +73,7 @@ class SidePanel(QVBoxLayout):
 
         # Кнопка показать расчеты
         self.show_calculations_button = QPushButton("Показать расчеты")
-        # self.show_calculations_button.clicked.connect(self.show_calculations)
+        self.show_calculations_button.clicked.connect(self.show_calculations)
         self.addWidget(self.show_calculations_button)
 
         # Кнопка сохранения в .docx файл
@@ -92,6 +94,65 @@ class SidePanel(QVBoxLayout):
             self.file_path_label.setText(file_path.split("/")[-1])
             self.graph_layout.set_las(lasio.read(file_path, encoding="cp1251"))
             self.graph_layout.plot_graphs()
+
+
+    def show_calculations(self):
+        datas = []
+        rows = 0
+        cols = 0
+        if self.process_heat_checkbox.isChecked():
+            rows += 1
+        if self.process_cool_checkbox.isChecked():
+            rows += 1
+
+        if self.graph_layout.is_gamma:
+            cols += 1
+            is_heat = self.process_heat_checkbox.isChecked()
+            is_cool = self.process_cool_checkbox.isChecked()
+            T_max_index, _ = find_temperature_drop_point(self.graph_layout.gamma_graph_canvas.graph_data.temper, 2)
+            
+            if not T_max_index:
+                print('program not defined boundaries beetwen heating and cooling')
+                print('may be temperature function only show heating')
+                is_cool = False
+
+            (heating_table, cooling_table) = get_calc_for_tables(
+                is_heat,
+                is_cool,
+                int(self.size_entry.text()),
+                T_max_index,
+                self.graph_layout.gamma_graph_canvas.graph_data.temper,  
+                self.graph_layout.gamma_graph_canvas.graph_data.near_probe, 
+                self.graph_layout.gamma_graph_canvas.graph_data.far_probe, 
+                self.graph_layout.gamma_graph_canvas.graph_data.far_on_near_probe
+            )
+            datas.append((heating_table, cooling_table, self.column_data_gamma))
+
+        if self.graph_layout.is_neutronic:
+            cols += 1
+            is_heat = self.process_heat_checkbox.isChecked()
+            is_cool = self.process_cool_checkbox.isChecked()
+            T_max_index, _ = find_temperature_drop_point(self.graph_layout.neutronic_graph_canvas.graph_data.temper, 2)
+            
+            if not T_max_index:
+                print('program not defined boundaries beetwen heating and cooling')
+                print('may be temperature function only show heating')
+                is_cool = False
+
+            (heating_table, cooling_table) = get_calc_for_tables(
+                is_heat,
+                is_cool,
+                int(self.size_entry.text()),
+                T_max_index,
+                self.graph_layout.neutronic_graph_canvas.graph_data.temper,  
+                self.graph_layout.neutronic_graph_canvas.graph_data.near_probe, 
+                self.graph_layout.neutronic_graph_canvas.graph_data.far_probe, 
+                self.graph_layout.neutronic_graph_canvas.graph_data.far_on_near_probe
+            )
+            datas.append((heating_table, cooling_table, self.column_data_neutronic))
+        
+        self.multi_table_window = MultiTableWindow(datas, rows, cols)
+        self.multi_table_window.show()
 
 
     def save_to_docx(self):

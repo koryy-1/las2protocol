@@ -67,12 +67,12 @@ def make_docx(params_for_reporting: ParamsForReport, MEM_FILES, picture_size):
             row_cells[1].width = Inches(1.5)
             if num >= 6:
                 row_cells[2].paragraphs[0].add_run(str(NEAR_PROBE)).bold = True
-                row_cells[3].paragraphs[0].add_run(str(NEAR_PROBE)).bold = True
-                row_cells[4].paragraphs[0].add_run(str(NEAR_PROBE)).bold = True
+                row_cells[3].paragraphs[0].add_run(str(FAR_PROBE)).bold = True
+                row_cells[4].paragraphs[0].add_run(str(FAR_ON_NEAR_PROBE)).bold = True
             else:
                 row_cells[2].paragraphs[0].add_run(str(NEAR_PROBE))
-                row_cells[3].paragraphs[0].add_run(str(NEAR_PROBE))
-                row_cells[4].paragraphs[0].add_run(str(NEAR_PROBE))
+                row_cells[3].paragraphs[0].add_run(str(FAR_PROBE))
+                row_cells[4].paragraphs[0].add_run(str(FAR_ON_NEAR_PROBE))
 
         cooling_table.style = 'Table Grid'
 
@@ -100,12 +100,12 @@ def make_docx(params_for_reporting: ParamsForReport, MEM_FILES, picture_size):
 
             if num >= 6:
                 row_cells[2].paragraphs[0].add_run(str(NEAR_PROBE)).bold = True
-                row_cells[3].paragraphs[0].add_run(str(NEAR_PROBE)).bold = True
-                row_cells[4].paragraphs[0].add_run(str(NEAR_PROBE)).bold = True
+                row_cells[3].paragraphs[0].add_run(str(FAR_PROBE)).bold = True
+                row_cells[4].paragraphs[0].add_run(str(FAR_ON_NEAR_PROBE)).bold = True
             else:
                 row_cells[2].paragraphs[0].add_run(str(NEAR_PROBE))
-                row_cells[3].paragraphs[0].add_run(str(NEAR_PROBE))
-                row_cells[4].paragraphs[0].add_run(str(NEAR_PROBE))
+                row_cells[3].paragraphs[0].add_run(str(FAR_PROBE))
+                row_cells[4].paragraphs[0].add_run(str(FAR_ON_NEAR_PROBE))
 
         cooling_table.style = 'Table Grid'
     

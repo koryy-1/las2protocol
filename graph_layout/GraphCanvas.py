@@ -106,14 +106,16 @@ class GraphCanvas(QWidget):
         
     def create_figure(self):
         print('create ', self.column_data.near_probe)
-        self.figure = Figure(figsize=(8, 6))
-        # self.figure.tight_layout(h_pad=30)
+        self.figure = Figure(figsize=(7, 9))
         self.figure.subplots_adjust(hspace=0.4)
+
         for i in range(4):
             self.axes.append(self.figure.add_subplot(4, 1, i + 1))
+
         self.figure.canvas.mpl_connect('button_press_event', self.on_mouse_press)
         self.figure.canvas.mpl_connect('motion_notify_event', self.on_mouse_move)
         self.figure.canvas.mpl_connect('button_release_event', self.on_mouse_release)
+        
         self.canvas.figure = self.figure
         self.canvas.draw()
 
@@ -252,6 +254,8 @@ class GraphCanvas(QWidget):
     def create_graph_on_canvas(self, ax: Axes, x, y, plot_title: str):
         # print(plot_title, y)
         ax.plot(y, label=plot_title, linewidth=2)
+
+        self.figure.tight_layout()
 
         fontsize = 12
         # plt.rc('font', size=fontsize) #controls default text size

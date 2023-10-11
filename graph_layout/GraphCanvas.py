@@ -152,8 +152,11 @@ class GraphCanvas(QWidget):
 
         if self.column_data.temper in self.las.keys():
             graph_data.temper = self.las[self.column_data.temper]
-        else:
+        elif self.column_data.default_temper in self.las.keys():
             graph_data.temper = self.las[self.column_data.default_temper]
+        else:
+            # todo: change near_probe
+            graph_data.temper = self.las[self.column_data.near_probe]
 
         # if self.is_gamma and not self.is_neutronic:
         #     graph_data.near_probe_threshold = int(self.las[self.column_data.near_probe_threshold][0])

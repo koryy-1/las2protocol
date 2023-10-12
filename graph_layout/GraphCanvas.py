@@ -145,28 +145,21 @@ class GraphCanvas(QWidget):
         graph_data.near_probe = self.las[self.column_data.near_probe]
         graph_data.far_probe = self.las[self.column_data.far_probe]
         graph_data.time = self.las["TIME"]
-        # if self.is_gamma and self.is_neutronic:
-        #     graph_data.temper = self.las[self.column_data.temper]
-        # else:
-        #     graph_data.temper = self.las[self.column_data.default_temper]
 
         if self.column_data.temper in self.las.keys():
             graph_data.temper = self.las[self.column_data.temper]
         elif self.column_data.default_temper in self.las.keys():
             graph_data.temper = self.las[self.column_data.default_temper]
         else:
-            # todo: change near_probe
-            graph_data.temper = self.las[self.column_data.near_probe]
-
-        # if self.is_gamma and not self.is_neutronic:
-        #     graph_data.near_probe_threshold = int(self.las[self.column_data.near_probe_threshold][0])
-        #     graph_data.far_probe_threshold = int(self.las[self.column_data.far_probe_threshold][0])
-        # else:
-        #     graph_data.near_probe_threshold = '\t\t'
-        #     graph_data.far_probe_threshold = '\t\t'
+            graph_data.temper = np.zeros(len(graph_data.time))
 
         graph_data.near_probe_threshold = '\t\t'
         graph_data.far_probe_threshold = '\t\t'
+
+        if self.column_data.near_probe_threshold in self.las.keys():
+            graph_data.near_probe_threshold = int(self.las[self.column_data.near_probe_threshold][0])
+        if self.column_data.far_probe_threshold in self.las.keys():
+            graph_data.far_probe_threshold = int(self.las[self.column_data.far_probe_threshold][0])
 
         return graph_data
 

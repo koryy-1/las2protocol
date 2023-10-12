@@ -12,7 +12,7 @@ class MultiTableWindow(QWidget):
         super().__init__()
 
         self.setWindowTitle('Multiple Tables Example')
-        self.setGeometry(100, 100, 22 + (22 + 418) * cols, 22 + (40 + 242) * rows)
+        self.setGeometry(100, 100, 22 + (22 + 418) * cols, 22 + (50 + 242) * rows)
 
         row_layout = QHBoxLayout()
         
@@ -71,6 +71,10 @@ class MultiTableWindow(QWidget):
 
         # Добавляем заголовок таблицы
         header_label = QLabel(title)
+        font = header_label.font()
+        font.setPointSize(12)
+        font.setBold(True)
+        header_label.setFont(font)
         header_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
         layout = QVBoxLayout()

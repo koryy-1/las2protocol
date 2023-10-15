@@ -161,7 +161,7 @@ class SidePanel(QVBoxLayout):
                 titles = self.column_data_gamma.near_probe, self.column_data_gamma.far_probe
                 serial_number = '12345'
                 date = self.graph_layout.gamma_graph_canvas.las.well["DATE"].value
-                instrument_name = 'GGKP'
+                instrument_name = 'ГГКП'
                 self.save_to_separate_docx(
                     self.graph_layout.gamma_graph_canvas.las is None,
                     self.graph_layout.gamma_graph_canvas.graph_data, 
@@ -175,7 +175,7 @@ class SidePanel(QVBoxLayout):
                 titles = self.column_data_neutronic.near_probe, self.column_data_neutronic.far_probe
                 serial_number = '12345'
                 date = self.graph_layout.neutronic_graph_canvas.las.well["DATE"].value
-                instrument_name = 'NNKT'
+                instrument_name = 'ННКТ'
                 self.save_to_separate_docx(
                     self.graph_layout.neutronic_graph_canvas.las is None,
                     self.graph_layout.neutronic_graph_canvas.graph_data, 

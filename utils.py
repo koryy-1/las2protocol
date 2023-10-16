@@ -1,5 +1,7 @@
 import numpy as np
 import pandas as pd
+import openpyxl
+from openpyxl.utils import coordinate_to_tuple
 
 def exceeds_threshold(calculation_table):
     max_percent_diff = max(
@@ -65,8 +67,49 @@ def find_min_variance_interval(data, interval_length=60):
 
     return variance_arr
 
+def insert_formula_into_cell(sheet, cell, formula):
+    sheet[cell].formula = formula
+
 def smoothing_function(data, window_size, count):
+    # via excel (crutch)
+    # workbook = openpyxl.Workbook()
+    # sheet = workbook.active
+
+    # formula = '=IF(ROW()<2,NA(),AVERAGE(OFFSET(C2,-120,0,240,1)))'
+
+    # # Найдем ячейку, в которую нужно вставить формулу
+    # formula_cell = 'A1'  # Замените на актуальное значение
+    # sheet[formula_cell].value = formula
+
+    # # Получаем координаты ячейки с формулой
+    # formula_row, formula_col = coordinate_to_tuple(formula_cell)
+
+    # output_array = []
+
+    # for i in range(len(data)):
+    #     # Устанавливаем значение переменной C2 равным текущему элементу массива
+    #     sheet.cell(row=formula_row, column=formula_col, value=data[i])
+
+    #     # Вычисляем формулу
+    #     result = sheet.cell(row=formula_row, column=formula_col).value
+
+    #     # Добавляем результат в выходной массив
+    #     output_array.append(result)
+
+    # workbook.close()
+
+    # return np.array(output_array)
+    
+
+    ### median smooth
     smoothed_data = data
     for _ in range(count):
-        smoothed_data = pd.Series(smoothed_data).rolling(window=window_size).mean().iloc[window_size-1:].values
+        smoothed_data = np.convolve(smoothed_data, np.ones(window_size)/window_size, mode='valid')
     return smoothed_data
+
+
+    ### default
+    # smoothed_data = data
+    # for _ in range(count):
+    #     smoothed_data = pd.Series(smoothed_data).rolling(window=window_size).mean().iloc[window_size-1:].values
+    # return smoothed_data

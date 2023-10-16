@@ -9,7 +9,7 @@ class LASFileAnalyzer(QMainWindow):
         super().__init__()
 
         self.setWindowTitle("LAS File Analyzer")
-        self.move(200, 200)
+        self.move(100, 100)
 
         # Создаем главный виджет
         main_widget = QWidget(self)

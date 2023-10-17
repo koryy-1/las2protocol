@@ -27,22 +27,38 @@ def calculate_metrics(
     """
     
     # Инициализация базовых значений
-    RSD_BASE, RLD_BASE, RLD_ON_RSD_BASE, T_base = initialize_base_values(temper_type, WINDOW_SIZE, TEMPER, RSD, RLD, RLD_on_RSD)
+    RSD_BASE, RLD_BASE, RLD_ON_RSD_BASE, T_base = initialize_base_values(
+        temper_type, WINDOW_SIZE, TEMPER, RSD, RLD, RLD_on_RSD
+    )
 
     # Вычисление максимальных и минимальных значений с учетом базовых
-    RSD_MAX, RLD_MAX, RLD_ON_RSD_MAX, RSD_MIN, RLD_MIN, RLD_ON_RSD_MIN = calculate_extremum_values(RSD, RLD, RLD_on_RSD, RSD_BASE, RLD_BASE, RLD_ON_RSD_BASE, TEMPER, T_base)
+    (RSD_MAX, RLD_MAX, RLD_ON_RSD_MAX, 
+     RSD_MIN, RLD_MIN, RLD_ON_RSD_MIN) = calculate_extremum_values(
+        RSD, RLD, RLD_on_RSD, RSD_BASE, 
+        RLD_BASE, RLD_ON_RSD_BASE, TEMPER, T_base
+    )
 
     # Вычисление разниц между максимальными и минимальными значениями и их базовыми значениями
-    RSD_MAX_DIFF, RLD_MAX_DIFF, RLD_ON_RSD_MAX_DIFF, RSD_MIN_DIFF, RLD_MIN_DIFF, RLD_ON_RSD_MIN_DIFF = calculate_value_differences(RSD_MAX, RLD_MAX, RLD_ON_RSD_MAX, RSD_MIN, RLD_MIN, RLD_ON_RSD_MIN, RSD_BASE, RLD_BASE, RLD_ON_RSD_BASE)
+    (RSD_MAX_DIFF, RLD_MAX_DIFF, RLD_ON_RSD_MAX_DIFF, 
+     RSD_MIN_DIFF, RLD_MIN_DIFF, RLD_ON_RSD_MIN_DIFF) = calculate_value_differences(
+        RSD_MAX, RLD_MAX, RLD_ON_RSD_MAX, RSD_MIN, RLD_MIN, 
+        RLD_ON_RSD_MIN, RSD_BASE, RLD_BASE, RLD_ON_RSD_BASE
+    )
 
     # Вычисление процентных изменений
-    RSD_PERCENT_MAX, RLD_PERCENT_MAX, RLD_ON_RSD_PERCENT_MAX, RSD_PERCENT_MIN, RLD_PERCENT_MIN, RLD_ON_RSD_PERCENT_MIN = calculate_percent_differences(RSD_MAX_DIFF, RLD_MAX_DIFF, RLD_ON_RSD_MAX_DIFF, RSD_MIN_DIFF, RLD_MIN_DIFF, RLD_ON_RSD_MIN_DIFF, RSD_BASE, RLD_BASE, RLD_ON_RSD_BASE)
+    (RSD_PERCENT_MAX, RLD_PERCENT_MAX, RLD_ON_RSD_PERCENT_MAX, 
+     RSD_PERCENT_MIN, RLD_PERCENT_MIN, RLD_ON_RSD_PERCENT_MIN) = calculate_percent_differences(
+        RSD_MAX_DIFF, RLD_MAX_DIFF, RLD_ON_RSD_MAX_DIFF, RSD_MIN_DIFF, 
+        RLD_MIN_DIFF, RLD_ON_RSD_MIN_DIFF, RSD_BASE, RLD_BASE, RLD_ON_RSD_BASE
+    )
 
     # Создание и возврат таблицы с метриками
-    calculation_table = create_calculation_table(T_base, RSD_BASE, RLD_BASE, RLD_ON_RSD_BASE, RSD_MAX, RLD_MAX, RLD_ON_RSD_MAX,
-                                                RSD_MIN, RLD_MIN, RLD_ON_RSD_MIN, RSD_MAX_DIFF, RLD_MAX_DIFF, RLD_ON_RSD_MAX_DIFF,
-                                                RSD_MIN_DIFF, RLD_MIN_DIFF, RLD_ON_RSD_MIN_DIFF, RSD_PERCENT_MAX, RLD_PERCENT_MAX,
-                                                RLD_ON_RSD_PERCENT_MAX, RSD_PERCENT_MIN, RLD_PERCENT_MIN, RLD_ON_RSD_PERCENT_MIN)
+    calculation_table = create_calculation_table(
+        T_base, RSD_BASE, RLD_BASE, RLD_ON_RSD_BASE, RSD_MAX, RLD_MAX, RLD_ON_RSD_MAX,
+        RSD_MIN, RLD_MIN, RLD_ON_RSD_MIN, RSD_MAX_DIFF, RLD_MAX_DIFF, RLD_ON_RSD_MAX_DIFF,
+        RSD_MIN_DIFF, RLD_MIN_DIFF, RLD_ON_RSD_MIN_DIFF, RSD_PERCENT_MAX, RLD_PERCENT_MAX,
+        RLD_ON_RSD_PERCENT_MAX, RSD_PERCENT_MIN, RLD_PERCENT_MIN, RLD_ON_RSD_PERCENT_MIN
+    )
 
     return calculation_table
 

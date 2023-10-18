@@ -75,10 +75,14 @@ def initialize_base_values(temper_type, WINDOW_SIZE, TEMPER, RSD, RLD, RLD_on_RS
     elif temper_type == TempType.COOLING:
         T_base_max_index, T_base = find_temperature_rise_point_right(TEMPER, 1)
         if T_base_max_index:
-            interval_for_base_value = min((len(TEMPER) - 1) - T_base_max_index, WINDOW_SIZE * 5)
-            RSD_BASE = np.average(RSD[(len(RSD) - 1) - interval_for_base_value:])
-            RLD_BASE = np.average(RLD[(len(RLD) - 1) - interval_for_base_value:])
-            RLD_ON_RSD_BASE = np.average(RLD_on_RSD[(len(RLD_on_RSD) - 1) - interval_for_base_value:])
+            if ((len(TEMPER) - 1) - T_base_max_index < WINDOW_SIZE * 5):
+                index_for_base_value = T_base_max_index
+            else:
+                index_for_base_value = (len(TEMPER) - 1) - WINDOW_SIZE * 5
+
+            RSD_BASE = np.average(RSD[index_for_base_value:])
+            RLD_BASE = np.average(RLD[index_for_base_value:])
+            RLD_ON_RSD_BASE = np.average(RLD_on_RSD[index_for_base_value:])
 
     return RSD_BASE, RLD_BASE, RLD_ON_RSD_BASE, T_base
 
@@ -93,10 +97,17 @@ def calculate_extremum_values(RSD, RLD, RLD_on_RSD, RSD_BASE, RLD_BASE, RLD_ON_R
 
     return RSD_MAX, RLD_MAX, RLD_ON_RSD_MAX, RSD_MIN, RLD_MIN, RLD_ON_RSD_MIN
 
+def get_interval_near_extremum(data, extremum_index):
+    return data[extremum_index - int(0.01 * len(data)):extremum_index + int(0.01 * len(data))]
+
 def calculate_extremum(data, TEMPER, base, T_base, is_max=True):
     extremum_value = data.max() if is_max else data.min()
     extremum_index = data.argmax() if is_max else data.argmin()
     extremum_temperature = TEMPER[extremum_index]
+
+    interval_near_extremum = get_interval_near_extremum(data, extremum_index)
+    extremum_value = np.average(interval_near_extremum)
+
     # RSD (RLD) +- 0.5% это для отличия флуктуации от максимума и минимума
     return (extremum_value, extremum_temperature) if is_extremum_point(base, extremum_value, 0.005) else (base, T_base)
 

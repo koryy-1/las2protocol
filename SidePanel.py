@@ -46,6 +46,10 @@ class SidePanel(QVBoxLayout):
         self.device_type_gamma_radio_btn.setChecked(True)
 
         self.device_type_neutronic_radio_btn = QRadioButton("Neutronic")
+
+        self.is_clear_graph_checkbox = QCheckBox("")
+        self.is_clear_graph_checkbox.setChecked(True)
+        self.is_clear_graph_checkbox.stateChanged.connect(self.graph_layout.set_is_clear_graphs)
         
         # Создаем виджет для параметров с использованием QFormLayout
         form_layout = QFormLayout()
@@ -55,6 +59,7 @@ class SidePanel(QVBoxLayout):
         form_layout.addRow("", self.process_cool_checkbox)
         form_layout.addRow("Какие данные сохранить:", self.device_type_gamma_radio_btn)
         form_layout.addRow("", self.device_type_neutronic_radio_btn)
+        form_layout.addRow("Очищать график при постр:", self.is_clear_graph_checkbox)
         self.addLayout(form_layout)
 
         # Кнопка открытия .las файла
@@ -70,6 +75,11 @@ class SidePanel(QVBoxLayout):
         self.plot_button = QPushButton("Перестроить графики")
         self.plot_button.clicked.connect(self.graph_layout.plot_graphs)
         self.addWidget(self.plot_button)
+
+        # Кнопка отметить экстремумы и базовую точку функции
+        self.mark_extreme_points_button = QPushButton("Отметить экстремумы")
+        self.mark_extreme_points_button.clicked.connect(self.graph_layout.mark_extreme_points)
+        self.addWidget(self.mark_extreme_points_button)
 
         # Кнопка показать расчеты
         self.show_calculations_button = QPushButton("Показать расчеты")

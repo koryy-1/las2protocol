@@ -13,6 +13,8 @@ from models.ColumnData import AbstractColumnData, ColumnDataGamma, ColumnDataNeu
 from models.GraphData import GraphData
 from utils import smoothing_function
 from graph_layout.ToolBox import ToolBox
+from calculations import initialize_base_values, calculate_extremum_values_with_indexes
+from models.TempType import TempType
 
 class GraphCanvas(QWidget):
     def __init__(self, column_data: AbstractColumnData):
@@ -56,6 +58,8 @@ class GraphCanvas(QWidget):
         self.left_dragging = False
         self.right_dragging = False
 
+        self.is_clear_graphs = True
+
     
     def set_las(self, las: LASFile):
         self.las = las
@@ -66,6 +70,8 @@ class GraphCanvas(QWidget):
     def set_smooth_count_entry(self, smooth_count_entry):
         self.smooth_count_entry = smooth_count_entry
 
+    def set_is_clear_graphs(self, value: bool):
+        self.is_clear_graphs = value
 
     def on_mouse_press(self, event):
         if event.button == 1 and event.xdata is not None:  # Проверяем, что нажата левая кнопка мыши
@@ -306,7 +312,8 @@ class GraphCanvas(QWidget):
         self.ensure_left_line_created()
         self.ensure_right_line_created()
         
-        self.clear_graphs()
+        if self.is_clear_graphs:
+            self.clear_graphs()
         
         self.get_data_from_las()
         self.calc_data()
@@ -344,5 +351,34 @@ class GraphCanvas(QWidget):
         self.tool_box.right_line_spinbox_x.setValue(self.right_spinbox_max_value)
         if self.right_vline_x == self.right_spinbox_max_value:
             self.draw_left_line()
+
+        self.canvas.draw()
+
+    def mark_extreme_points(self, is_heat, is_cool):
+        # calcs
+        if is_heat:
+            near_probe_base, far_probe_base, far_on_near_probe_base, T_base = initialize_base_values(
+                TempType.HEATING, int(self.size_entry), self.graph_data.temper, self.graph_data.near_probe, self.graph_data.far_probe, self.graph_data.far_on_near_probe
+            )
+
+            (near_probe_max_x, far_probe_max_x, far_on_near_probe_max_x, 
+            near_probe_min_x, far_probe_min_x, far_on_near_probe_min_x) = calculate_extremum_values_with_indexes(
+                self.graph_data.near_probe, self.graph_data.far_probe, self.graph_data.far_on_near_probe, near_probe_base, 
+                far_probe_base, far_on_near_probe_base, self.graph_data.temper, T_base
+            )
+
+            near_probe_x = [0, near_probe_max_x, near_probe_min_x]
+            near_probe_y = [near_probe_base, near_probe_max_y, near_probe_min_y]
+
+            far_probe_x = [0, far_probe_max_x, far_probe_min_x]
+            far_probe_y = [far_probe_base, far_probe_max_y, near_probe_min_y]
+
+            far_on_near_probe_x = [0, far_on_near_probe_max_x, far_on_near_probe_min_x]
+            far_on_near_probe_y = [far_on_near_probe_base, far_on_near_probe_max_y, far_on_near_probe_min_y]
+
+
+        self.axes[1].scatter(near_probe_x, near_probe_y, color='red', label='Extremum')
+        self.axes[2].scatter(far_probe_x, far_probe_y, color='red', label='Extremum')
+        self.axes[3].scatter(far_on_near_probe_x, far_on_near_probe_y, color='red', label='Extremum')
 
         self.canvas.draw()

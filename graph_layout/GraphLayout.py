@@ -69,6 +69,10 @@ class GraphLayout(QHBoxLayout):
     def set_is_neutronic(self, is_neutronic):
         self.is_neutronic = is_neutronic
 
+    def set_is_clear_graphs(self, value: bool):
+        self.gamma_graph_canvas.set_is_clear_graphs(value)
+        self.neutronic_graph_canvas.set_is_clear_graphs(value)
+
     def define_device_type(self, las: LASFile):
         self.set_is_gamma("RSD" in las.keys())
         self.set_is_neutronic("NTNC" in las.keys())
@@ -86,3 +90,9 @@ class GraphLayout(QHBoxLayout):
             self.gamma_graph_canvas.plot_graphs()
         if self.is_neutronic:
             self.neutronic_graph_canvas.plot_graphs()
+
+    def mark_extreme_points(self):
+        if self.is_gamma:
+            self.gamma_graph_canvas.mark_extreme_points()
+        if self.is_neutronic:
+            self.neutronic_graph_canvas.mark_extreme_points()

@@ -12,7 +12,7 @@ class MultiTableWindow(QWidget):
         super().__init__()
 
         self.setWindowTitle('Multiple Tables Example')
-        self.setGeometry(100, 100, 22 + (22 + 418) * cols, 22 + (50 + 242) * rows)
+        self.setGeometry(100, 100, int((22 + (22 + 418) * cols) * 1.25), int((22 + (50 + 242) * rows) * 1.25))
 
         row_layout = QHBoxLayout()
         

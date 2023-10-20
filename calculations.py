@@ -127,8 +127,8 @@ def calculate_extremum_with_indexes(data, TEMPER, base, T_base, temp_type, is_ma
     extremum_index = data.argmax() if is_max else data.argmin()
     extremum_temperature = TEMPER[extremum_index]
 
-    # interval_near_extremum = get_interval_near_extremum(data, extremum_index)
-    # extremum_value = np.average(interval_near_extremum)
+    interval_near_extremum = get_interval_near_extremum(data, extremum_index)
+    extremum_value = np.average(interval_near_extremum)
 
     base_index = 0 if temp_type == TempType.HEATING else len(TEMPER)
 

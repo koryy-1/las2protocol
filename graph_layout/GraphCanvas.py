@@ -356,29 +356,74 @@ class GraphCanvas(QWidget):
 
     def mark_extreme_points(self, is_heat, is_cool):
         # calcs
+        near_probe_heat_x = []
+        near_probe_heat_y = []
+
+        far_probe_heat_x = []
+        far_probe_heat_y = []
+
+        far_on_near_probe_heat_x = []
+        far_on_near_probe_heat_y = []
+
+        near_probe_cool_x = []
+        near_probe_cool_y = []
+
+        far_probe_cool_x = []
+        far_probe_cool_y = []
+
+        far_on_near_probe_cool_x = []
+        far_on_near_probe_cool_y = []
         if is_heat:
             near_probe_base, far_probe_base, far_on_near_probe_base, T_base = initialize_base_values(
                 TempType.HEATING, int(self.size_entry), self.graph_data.temper, self.graph_data.near_probe, self.graph_data.far_probe, self.graph_data.far_on_near_probe
             )
 
-            (near_probe_max_x, far_probe_max_x, far_on_near_probe_max_x, 
-            near_probe_min_x, far_probe_min_x, far_on_near_probe_min_x) = calculate_extremum_values_with_indexes(
+            (near_probe_max, far_probe_max, far_on_near_probe_max, 
+            near_probe_min, far_probe_min, far_on_near_probe_min) = calculate_extremum_values_with_indexes(
                 self.graph_data.near_probe, self.graph_data.far_probe, self.graph_data.far_on_near_probe, near_probe_base, 
-                far_probe_base, far_on_near_probe_base, self.graph_data.temper, T_base
+                far_probe_base, far_on_near_probe_base, self.graph_data.temper, T_base, TempType.HEATING
             )
 
-            near_probe_x = [0, near_probe_max_x, near_probe_min_x]
-            near_probe_y = [near_probe_base, near_probe_max_y, near_probe_min_y]
+            near_probe_heat_x = [0, near_probe_max[0], near_probe_min[0]]
+            near_probe_heat_y = [near_probe_base, near_probe_max[1], near_probe_min[1]]
 
-            far_probe_x = [0, far_probe_max_x, far_probe_min_x]
-            far_probe_y = [far_probe_base, far_probe_max_y, near_probe_min_y]
+            far_probe_heat_x = [0, far_probe_max[0], far_probe_min[0]]
+            far_probe_heat_y = [far_probe_base, far_probe_max[1], far_probe_min[1]]
 
-            far_on_near_probe_x = [0, far_on_near_probe_max_x, far_on_near_probe_min_x]
-            far_on_near_probe_y = [far_on_near_probe_base, far_on_near_probe_max_y, far_on_near_probe_min_y]
+            far_on_near_probe_heat_x = [0, far_on_near_probe_max[0], far_on_near_probe_min[0]]
+            far_on_near_probe_heat_y = [far_on_near_probe_base, far_on_near_probe_max[1], far_on_near_probe_min[1]]
 
+        if is_cool:
+            near_probe_base, far_probe_base, far_on_near_probe_base, T_base = initialize_base_values(
+                TempType.COOLING, int(self.size_entry), self.graph_data.temper, self.graph_data.near_probe, self.graph_data.far_probe, self.graph_data.far_on_near_probe
+            )
 
-        self.axes[1].scatter(near_probe_x, near_probe_y, color='red', label='Extremum')
-        self.axes[2].scatter(far_probe_x, far_probe_y, color='red', label='Extremum')
-        self.axes[3].scatter(far_on_near_probe_x, far_on_near_probe_y, color='red', label='Extremum')
+            (near_probe_max, far_probe_max, far_on_near_probe_max, 
+            near_probe_min, far_probe_min, far_on_near_probe_min) = calculate_extremum_values_with_indexes(
+                self.graph_data.near_probe, self.graph_data.far_probe, self.graph_data.far_on_near_probe, near_probe_base, 
+                far_probe_base, far_on_near_probe_base, self.graph_data.temper, T_base, TempType.COOLING
+            )
+
+            near_probe_cool_x = [len(self.graph_data.temper), near_probe_max[0], near_probe_min[0]]
+            near_probe_cool_y = [near_probe_base, near_probe_max[1], near_probe_min[1]]
+
+            far_probe_cool_x = [len(self.graph_data.temper), far_probe_max[0], far_probe_min[0]]
+            far_probe_cool_y = [far_probe_base, far_probe_max[1], far_probe_min[1]]
+
+            far_on_near_probe_cool_x = [len(self.graph_data.temper), far_on_near_probe_max[0], far_on_near_probe_min[0]]
+            far_on_near_probe_cool_y = [far_on_near_probe_base, far_on_near_probe_max[1], far_on_near_probe_min[1]]
+
+        near_probe_heat_x.extend(near_probe_cool_x)
+        near_probe_heat_y.extend(near_probe_cool_y)
+
+        far_probe_heat_x.extend(far_probe_cool_x)
+        far_probe_heat_y.extend(far_probe_cool_y)
+
+        far_on_near_probe_heat_x.extend(far_on_near_probe_cool_x)
+        far_on_near_probe_heat_y.extend(far_on_near_probe_cool_y)
+
+        self.axes[0].scatter(near_probe_heat_x, near_probe_heat_y, color='red', label='Extremum')
+        self.axes[1].scatter(far_probe_heat_x, far_probe_heat_y, color='red', label='Extremum')
+        self.axes[2].scatter(far_on_near_probe_heat_x, far_on_near_probe_heat_y, color='red', label='Extremum')
 
         self.canvas.draw()

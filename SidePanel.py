@@ -78,7 +78,7 @@ class SidePanel(QVBoxLayout):
 
         # Кнопка отметить экстремумы и базовую точку функции
         self.mark_extreme_points_button = QPushButton("Отметить экстремумы")
-        self.mark_extreme_points_button.clicked.connect(self.graph_layout.mark_extreme_points)
+        self.mark_extreme_points_button.clicked.connect(self.mark_extreme_points)
         self.addWidget(self.mark_extreme_points_button)
 
         # Кнопка показать расчеты
@@ -104,6 +104,12 @@ class SidePanel(QVBoxLayout):
             self.file_path_label.setText(file_path.split("/")[-1])
             self.graph_layout.set_las(lasio.read(file_path, encoding="cp1251"))
             self.graph_layout.plot_graphs()
+
+    def mark_extreme_points(self):
+        self.graph_layout.mark_extreme_points(
+            self.process_heat_checkbox.isChecked(),
+            self.process_cool_checkbox.isChecked()
+        )
 
 
     def show_calculations(self):

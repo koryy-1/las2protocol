@@ -97,14 +97,14 @@ def calculate_extremum_values(RSD, RLD, RLD_on_RSD, RSD_BASE, RLD_BASE, RLD_ON_R
 
     return RSD_MAX, RLD_MAX, RLD_ON_RSD_MAX, RSD_MIN, RLD_MIN, RLD_ON_RSD_MIN
 
-def calculate_extremum_values_with_indexes(RSD, RLD, RLD_on_RSD, RSD_BASE, RLD_BASE, RLD_ON_RSD_BASE, TEMPER, T_base):
-    RSD_MAX = calculate_extremum_with_indexes(RSD, TEMPER, RSD_BASE, T_base)
-    RLD_MAX = calculate_extremum_with_indexes(RLD, TEMPER, RLD_BASE, T_base)
-    RLD_ON_RSD_MAX = calculate_extremum_with_indexes(RLD_on_RSD, TEMPER, RLD_ON_RSD_BASE, T_base)
+def calculate_extremum_values_with_indexes(RSD, RLD, RLD_on_RSD, RSD_BASE, RLD_BASE, RLD_ON_RSD_BASE, TEMPER, T_base, temp_type):
+    RSD_MAX = calculate_extremum_with_indexes(RSD, TEMPER, RSD_BASE, T_base, temp_type)
+    RLD_MAX = calculate_extremum_with_indexes(RLD, TEMPER, RLD_BASE, T_base, temp_type)
+    RLD_ON_RSD_MAX = calculate_extremum_with_indexes(RLD_on_RSD, TEMPER, RLD_ON_RSD_BASE, T_base, temp_type)
 
-    RSD_MIN = calculate_extremum_with_indexes(RSD, TEMPER, RSD_BASE, T_base, is_max=False)
-    RLD_MIN = calculate_extremum_with_indexes(RLD, TEMPER, RLD_BASE, T_base, is_max=False)
-    RLD_ON_RSD_MIN = calculate_extremum_with_indexes(RLD_on_RSD, TEMPER, RLD_ON_RSD_BASE, T_base, is_max=False)
+    RSD_MIN = calculate_extremum_with_indexes(RSD, TEMPER, RSD_BASE, T_base, temp_type, is_max=False)
+    RLD_MIN = calculate_extremum_with_indexes(RLD, TEMPER, RLD_BASE, T_base, temp_type, is_max=False)
+    RLD_ON_RSD_MIN = calculate_extremum_with_indexes(RLD_on_RSD, TEMPER, RLD_ON_RSD_BASE, T_base, temp_type, is_max=False)
 
     return RSD_MAX, RLD_MAX, RLD_ON_RSD_MAX, RSD_MIN, RLD_MIN, RLD_ON_RSD_MIN
 
@@ -122,16 +122,18 @@ def calculate_extremum(data, TEMPER, base, T_base, is_max=True):
     # RSD (RLD) +- 0.5% это для отличия флуктуации от максимума и минимума
     return (extremum_value, extremum_temperature) if is_extremum_point(base, extremum_value, 0.005) else (base, T_base)
 
-def calculate_extremum_with_indexes(data, TEMPER, base, T_base, is_max=True):
+def calculate_extremum_with_indexes(data, TEMPER, base, T_base, temp_type, is_max=True):
     extremum_value = data.max() if is_max else data.min()
     extremum_index = data.argmax() if is_max else data.argmin()
     extremum_temperature = TEMPER[extremum_index]
 
-    interval_near_extremum = get_interval_near_extremum(data, extremum_index)
-    extremum_value = np.average(interval_near_extremum)
+    # interval_near_extremum = get_interval_near_extremum(data, extremum_index)
+    # extremum_value = np.average(interval_near_extremum)
+
+    base_index = 0 if temp_type == TempType.HEATING else len(TEMPER)
 
     # RSD (RLD) +- 0.5% это для отличия флуктуации от максимума и минимума
-    return (extremum_index, extremum_value) if is_extremum_point(base, extremum_value, 0.005) else (base, T_base)
+    return (extremum_index, extremum_value) if is_extremum_point(base, extremum_value, 0.005) else (base_index, base)
 
 def calculate_value_differences(RSD_MAX, RLD_MAX, RLD_ON_RSD_MAX, RSD_MIN, RLD_MIN, RLD_ON_RSD_MIN, RSD_BASE, RLD_BASE, RLD_ON_RSD_BASE):
     RSD_MAX_DIFF = RSD_MAX[0] - RSD_BASE

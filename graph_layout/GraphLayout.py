@@ -91,8 +91,8 @@ class GraphLayout(QHBoxLayout):
         if self.is_neutronic:
             self.neutronic_graph_canvas.plot_graphs()
 
-    def mark_extreme_points(self):
+    def mark_extreme_points(self, is_heat, is_cool):
         if self.is_gamma:
-            self.gamma_graph_canvas.mark_extreme_points()
+            self.gamma_graph_canvas.mark_extreme_points(is_heat, is_cool)
         if self.is_neutronic:
-            self.neutronic_graph_canvas.mark_extreme_points()
+            self.neutronic_graph_canvas.mark_extreme_points(is_heat, is_cool)
